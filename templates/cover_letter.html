@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cover Letter Generator - AI Resume Perfecter</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; background: linear-gradient(120deg, #f3e5f5 0%, #ffffff 50%, #e8eaf6 100%); --accent:#9C27B0; }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            margin-top: 80px; /* Add top margin to avoid overlap with back button */
+            background: #fff; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+            position: relative; 
+        }
+        .container::before { content: ""; position: absolute; inset: 0; padding: 2px; border-radius: 12px; background: linear-gradient(120deg, #fff, #a0b4ff, #ffd1e3, #b3ffd6, #fff); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: shine 3s linear infinite; pointer-events: none; }
+        @keyframes shine { 0% { filter: hue-rotate(0deg);} 100% { filter: hue-rotate(360deg);} }
+        .header { text-align: center; margin-bottom: 30px; }
+        h1 { color: #9C27B0; margin-bottom: 10px; }
+        .back-button { 
+            position: fixed; 
+            top: 20px; 
+            left: 20px; 
+            background: #666; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            text-decoration: none;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .back-button:hover { 
+            background: #555; 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        textarea, input[type="file"] { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 200px; resize: vertical; }
+        button { padding: 12px 20px; background-color: #9C27B0; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover:not(:disabled) { background-color: #7B1FA2; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        /* Cover Letter Preview Box Styling */
+        #cover-letter-preview-box { 
+            font-family: 'Times New Roman', serif;
+            font-size: 11pt; 
+            line-height: 1.55; 
+            border: 1px solid #ddd; 
+            padding: 0; 
+            min-height: 500px; 
+            background-color: #fff; 
+            margin-top: 10px; 
+            outline: none; 
+            white-space: pre-wrap;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: justify;
+            hyphens: auto;
+        }
+        #cover-letter-preview-box h1, #cover-letter-preview-box h2, #cover-letter-preview-box h3 {
+            font-weight: 700 !important;
+            font-size: 12pt !important;
+            margin: 8px 0 6px 0 !important;
+        }
+        #cover-letter-preview-box strong, #cover-letter-preview-box b { font-weight: 700 !important; }
+
+        /* Shimmer Button */
+        .shimmer-btn{position:relative;overflow:hidden}
+        .shimmer-btn::after{content:"";position:absolute;top:-50%;left:-30%;width:60%;height:200%;background:linear-gradient(90deg,transparent 0%,color-mix(in oklab, var(--accent) 30%, transparent) 45%, color-mix(in oklab, var(--accent) 80%, white) 50%, color-mix(in oklab, var(--accent) 30%, transparent) 55%,transparent 100%);transform:rotate(20deg) translateX(-120%);animation:clShimmer 2.2s linear infinite;pointer-events:none}
+        @keyframes clShimmer{0%{transform:rotate(20deg) translateX(-120%)}100%{transform:rotate(20deg) translateX(320%)}}
+        /* Job description accent */
+        textarea#job_description{border-color:var(--accent)}
+        textarea#job_description:focus{outline:none;border-color:#7B1FA2;box-shadow:0 0 0 3px rgba(156,39,176,.15)}
+
+        /* Chatbot */
+        .chat-launcher{position:fixed;right:24px;bottom:24px;background:var(--accent);color:#fff;border:none;border-radius:30px;padding:12px 16px;font-weight:700;cursor:pointer;z-index:9999}
+        .chat-panel{position:fixed;right:24px;bottom:84px;width:340px;max-height:60vh;background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 12px 24px rgba(0,0,0,.2);display:none;flex-direction:column;overflow:hidden;z-index:9999}
+        .chat-header{padding:10px 12px;background:var(--accent);color:#fff;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+        .chat-body{padding:10px;overflow:auto;flex:1;background:#f8fafc}
+        .chat-msg{margin:6px 0;font-size:13px}
+        .chat-msg.user{color:#111827;text-align:right}
+        .chat-msg.bot{color:#334155}
+        .chat-input{display:flex;padding:8px;background:#fff;border-top:1px solid #e5e7eb}
+        .chat-input input{flex:1;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;margin-right:8px}
+        .chat-input button{padding:8px 12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer}
+
+        /* File Drop */
+        .file-drop{border:2px dashed var(--accent,#9C27B0);border-radius:12px;padding:18px;display:flex;align-items:center;gap:12px;background:#fcf7ff}
+        .file-drop input[type="file"]{display:none}
+        .fd-label{display:flex;align-items:center;gap:10px;color:#7B1FA2;font-weight:700;cursor:pointer}
+        .fd-label i{font-size:18px}
+        .fd-name{margin-left:auto;color:#475569;font-weight:600}
+        .file-drop.drag{background:#f3e8ff;border-color:#7B1FA2}
+
+        /* Rich Text Toolbar Styles */
+        .toolbar-group { position: relative; display: inline-block; margin-right: 5px; }
+        #cover-letter-toolbar button, #cover-letter-toolbar select {
+            padding: 5px 10px;
+            margin: 2px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .color-picker-dropdown {
+            position: absolute;
+            top: 100%; 
+            left: 0;
+            z-index: 10;
+            margin-top: 5px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            padding: 8px;
+            display: none; 
+        }
+        .color-swatch-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 5px;
+        }
+        .color-swatch {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.1s;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+
+        /* Loading Spinner */
+        .loading-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(255, 255, 255, 0.9); 
+            z-index: 1000; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 1.2em; 
+            color: #9C27B0; 
+            flex-direction: column;
+        }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #9C27B0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Interactive Hover Button */
+        .ih-btn { position: relative; overflow: hidden; transition: transform .2s ease, box-shadow .2s ease; }
+        .ih-btn::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,.25), transparent 60%); transform: translate(-100%,-100%) rotate(25deg); transition: transform .6s ease; }
+        .ih-btn:hover::before { transform: translate(-20%,-20%) rotate(0); }
+        .ih-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 24px rgba(0,0,0,.15); }
+
+        
+    </style>
+</head>
+<body>
+    <a href="/" class="back-button">← Back to Home</a>
+    
+    <div class="container">
+        <div class="header">
+            <h1>📧 Cover Letter Generator</h1>
+            <p>Create professional cover letters that complement your resume</p>
+        </div>
+        
+        <form id="cover-letter-form">
+            <div class="grid-layout">
+                <div>
+                    <h2>Job Description</h2>
+                    <textarea id="job_description" name="job_description" placeholder="Paste the full job description here..." required></textarea>
+                </div>
+                <div>
+                    <h2>Upload Resume (PDF)</h2>
+                    <div class="file-drop" id="fd-resume">
+                        <input type="file" id="resume_file" name="resume_file" accept=".pdf" required>
+                        <label for="resume_file" class="fd-label"><i class="fas fa-upload"></i><span>Select PDF</span></label>
+                        <span class="fd-name" id="resume_file_name">No file chosen</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h2>Choose Cover Letter Template</h2>
+                <select id="cover-letter-template" title="Cover Letter Template" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 200px;">
+                    <option value="professional">Professional</option>
+                    <option value="modern">Modern</option>
+                    <option value="creative">Creative</option>
+                    <option value="executive">Executive</option>
+                </select>
+            </div>
+            
+            <button type="submit" id="generate-button" class="ih-btn">Generate Cover Letter</button>
+        </form>
+        
+        <hr style="margin: 40px 0;">
+
+        <div class="cover-letter-area" id="cover-letter-area" style="display: none;">
+            <div class="output-controls" style="text-align: right; margin-bottom: 20px;">
+                <button id="download-cover-letter-button" class="ih-btn" disabled>Download Cover Letter PDF</button>
+            </div>
+            
+            <h2>Editable Cover Letter Preview</h2>
+            
+            <div id="cover-letter-toolbar" style="border: 1px solid #ccc; background: #eee; padding: 5px; margin-bottom: 5px; display: flex; align-items: center;">
+                <button title="Bold" onclick="execCmdCoverLetter('bold')"><i class="fas fa-bold"></i></button>
+                <button title="Italic" onclick="execCmdCoverLetter('italic')"><i class="fas fa-italic"></i></button>
+                <button title="Underline" onclick="execCmdCoverLetter('underline')"><i class="fas fa-underline"></i></button>
+                <button title="Strikethrough" onclick="execCmdCoverLetter('strikethrough')"><i class="fas fa-strikethrough"></i></button>
+                
+                <div class="toolbar-group">
+                    <button title="Font Color" id="cover-letter-font-color-toggle" onclick="toggleCoverLetterColorPicker()"><i class="fas fa-fill-drip"></i></button>
+                    <div id="cover-letter-color-picker-dropdown" class="color-picker-dropdown">
+                        <div class="color-swatch-grid">
+                            <button class="color-swatch" style="background-color: #000;" data-color="#000" onclick="applyCoverLetterColor('#000')"></button>
+                            <button class="color-swatch" style="background-color: #333;" data-color="#333" onclick="applyCoverLetterColor('#333')"></button>
+                            <button class="color-swatch" style="background-color: #4285F4;" data-color="#4285F4" onclick="applyCoverLetterColor('#4285F4')"></button>
+                            <button class="color-swatch" style="background-color: #34A853;" data-color="#34A853" onclick="applyCoverLetterColor('#34A853')"></button>
+                            <button class="color-swatch" style="background-color: #EA4335;" data-color="#EA4335" onclick="applyCoverLetterColor('#EA4335')"></button>
+                            <button class="color-swatch" style="background-color: #FBBC05;" data-color="#FBBC05" onclick="applyCoverLetterColor('#FBBC05')"></button>
+                            <button class="color-swatch" style="background-color: #8A2BE2;" data-color="#8A2BE2" onclick="applyCoverLetterColor('#8A2BE2')"></button>
+                            <button class="color-swatch" style="background-color: #FFFFFF; border: 1px solid #000;" data-color="#FFFFFF" onclick="applyCoverLetterColor('#FFFFFF')"></button>
+                        </div>
+                    </div>
+                </div>
+                <select onchange="execCmdCoverLetter('fontSize', this.value); this.value=''" title="Font Size" style="margin-left: 10px;">
+                    <option value="" disabled selected>Size</option>
+                    <option value="3">Small</option>
+                    <option value="5">Medium</option>
+                    <option value="7">Large</option>
+                </select>
+                
+                <select onchange="execCmdCoverLetter(this.value); this.value=''" title="Alignment">
+                    <option value="" disabled selected>Align</option>
+                    <option value="justifyLeft">Left</option>
+                    <option value="justifyCenter">Center</option>
+                    <option value="justifyRight">Right</option>
+                    <option value="justifyFull">Justify</option>
+                </select>
+            </div>
+            
+            <div id="cover-letter-preview-box" contenteditable="true">
+                The generated cover letter will appear here.
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <p style="margin-top: 20px;">Generating your cover letter...</p>
+    </div>
+
+    <script>
+        // Confetti helper
+        (function(){
+            const s=document.createElement('script');
+            s.src='https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js';
+            document.head.appendChild(s);
+        })();
+        function launchSideCannons(){
+            if (!window.confetti) return;
+            const end = Date.now() + 3 * 1000;
+            const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
+            (function frame(){
+                if (Date.now() > end) return;
+                window.confetti({particleCount: 2, angle: 60, spread: 55, startVelocity: 60, origin: {x:0, y:0.5}, colors});
+                window.confetti({particleCount: 2, angle: 120, spread: 55, startVelocity: 60, origin: {x:1, y:0.5}, colors});
+                requestAnimationFrame(frame);
+            })();
+        }
+        const form = document.getElementById('cover-letter-form');
+        const coverLetterArea = document.getElementById('cover-letter-area');
+        const coverLetterPreviewBox = document.getElementById('cover-letter-preview-box');
+        const coverLetterTemplate = document.getElementById('cover-letter-template');
+        const downloadCoverLetterButton = document.getElementById('download-cover-letter-button');
+        const coverLetterColorPickerDropdown = document.getElementById('cover-letter-color-picker-dropdown');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        // File input and drag-drop handlers to show selected PDF name
+        const resumeInput = document.getElementById('resume_file');
+        const resumeName = document.getElementById('resume_file_name');
+        const fileDrop = document.getElementById('fd-resume');
+
+        // Update label with chosen file name
+        resumeInput.addEventListener('change', () => {
+            const f = resumeInput.files && resumeInput.files[0];
+            resumeName.textContent = f ? f.name : 'No file chosen';
+        });
+
+        // Drag-and-drop UX for the file area
+        ['dragenter','dragover'].forEach(evt => fileDrop.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileDrop.classList.add('drag');
+        }));
+        ['dragleave','drop'].forEach(evt => fileDrop.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileDrop.classList.remove('drag');
+        }));
+        fileDrop.addEventListener('drop', e => {
+            const dt = e.dataTransfer;
+            if (!dt || !dt.files || !dt.files.length) return;
+            const f = dt.files[0];
+            if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
+                alert('Please drop a PDF file.');
+                return;
+            }
+            // Assign dropped file to the hidden input and trigger change
+            resumeInput.files = dt.files;
+            resumeInput.dispatchEvent(new Event('change'));
+        });
+
+        // Utility Functions
+        function execCmdCoverLetter(command, value = null) {
+            document.execCommand(command, false, value);
+            coverLetterPreviewBox.focus();
+        }
+
+        function toggleCoverLetterColorPicker() {
+            coverLetterColorPickerDropdown.style.display = coverLetterColorPickerDropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function applyCoverLetterColor(hexColor) {
+            execCmdCoverLetter('foreColor', hexColor);
+            toggleCoverLetterColorPicker();
+        }
+        
+        // Hide color picker if user clicks outside
+        document.addEventListener('click', function(event) {
+            const coverLetterFontColorToggle = document.getElementById('cover-letter-font-color-toggle');
+            const isClickInside = coverLetterFontColorToggle.contains(event.target) || coverLetterColorPickerDropdown.contains(event.target);
+            if (!isClickInside) {
+                coverLetterColorPickerDropdown.style.display = 'none';
+            }
+        });
+
+        // Form submission logic
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const jobDescription = document.getElementById('job_description').value;
+            const resumeFile = document.getElementById('resume_file').files[0];
+
+            if (!jobDescription || !resumeFile) {
+                alert("Please provide both the Job Description and upload a Resume (PDF).");
+                return;
+            }
+
+            // First, extract text from PDF
+            const formData = new FormData();
+            formData.append('resume', resumeFile);
+
+            loadingOverlay.style.display = 'flex';
+            document.getElementById('generate-button').disabled = true;
+            downloadCoverLetterButton.disabled = true;
+            
+            coverLetterPreviewBox.innerHTML = "Processing resume and generating cover letter...";
+
+            try {
+                // Extract text from PDF
+                const uploadResponse = await fetch('/upload_resume_for_cover_letter', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const uploadResult = await uploadResponse.json();
+
+                if (!uploadResponse.ok) {
+                    throw new Error(uploadResult.error || 'Failed to process resume');
+                }
+
+                // Generate cover letter
+                const payload = {
+                    job_description: jobDescription,
+                    resume_text: uploadResult.resume_text,
+                    template_style: coverLetterTemplate.value
+                };
+
+                const response = await fetch('/generate_cover_letter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.cover_letter) {
+                    // Simple text formatting for cover letter
+                    let coverLetterHtml = result.cover_letter
+                        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                        .replace(/\n{2,}/g, '<br><br>')
+                        .replace(/\n/g, '<br>');
+
+                    coverLetterPreviewBox.innerHTML = coverLetterHtml;
+                    downloadCoverLetterButton.disabled = false;
+                    coverLetterArea.style.display = 'block';
+                    try { launchSideCannons(); } catch(e) {}
+                } else {
+                    coverLetterPreviewBox.innerHTML = `Error: ${result.error || 'Could not generate cover letter.'}`;
+                    downloadCoverLetterButton.disabled = true;
+                }
+            } catch (error) {
+                coverLetterPreviewBox.innerHTML = `Error: ${error.message}`;
+                downloadCoverLetterButton.disabled = true;
+            } finally {
+                loadingOverlay.style.display = 'none';
+                document.getElementById('generate-button').disabled = false;
+            }
+        });
+
+        // Download Cover Letter Logic
+        downloadCoverLetterButton.addEventListener('click', function() {
+            const element = document.getElementById('cover-letter-preview-box');
+            
+            if (element.innerHTML.trim() === "" || element.innerHTML.includes("The generated cover letter will appear here.")) {
+                 alert("Please generate a valid cover letter before attempting to download.");
+                 return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            const cm = 28.35; // 1 cm in points
+            const contentWidthPt = doc.internal.pageSize.getWidth() - (2 * cm);
+
+            doc.html(element, {
+                callback: function (doc) {
+                    const jobDescTitle = document.getElementById('job_description').value.split('\n')[0].substring(0, 30);
+                    doc.save(`Cover_Letter_${jobDescTitle || 'Gemini'}.pdf`);
+                },
+                x: cm, 
+                y: cm,
+                width: contentWidthPt,
+                windowWidth: Math.round(contentWidthPt),
+                margin: [cm, cm, cm, cm],
+                autoPaging: 'text'
+            });
+        });
+    </script>
+</body>
+</html>

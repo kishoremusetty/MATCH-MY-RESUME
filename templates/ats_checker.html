@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATS Score Checker - AI Resume Perfecter</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; background: linear-gradient(120deg, #e8f5e9 0%, #ffffff 50%, #e3f2fd 100%); --accent: #4CAF50; }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            margin-top: 80px; /* Add top margin to avoid overlap with back button */
+            background: #fff; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+            position: relative; 
+        }
+        .container::before { content: ""; position: absolute; inset: 0; padding: 2px; border-radius: 12px; background: linear-gradient(120deg, #fff, #a0b4ff, #ffd1e3, #b3ffd6, #fff); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: shine 3s linear infinite; pointer-events: none; }
+        @keyframes shine { 0% { filter: hue-rotate(0deg);} 100% { filter: hue-rotate(360deg);} }
+        .header { text-align: center; margin-bottom: 30px; }
+        h1 { color: #4CAF50; margin-bottom: 10px; }
+        .back-button { 
+            position: fixed; 
+            top: 20px; 
+            left: 20px; 
+            background: #666; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            text-decoration: none;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .back-button:hover { 
+            background: #555; 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        textarea, input[type="file"] { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 200px; resize: vertical; }
+        button { padding: 12px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover:not(:disabled) { background-color: #45a049; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .file-drop{border:2px dashed var(--accent,#4CAF50);border-radius:12px;padding:18px;display:flex;align-items:center;gap:12px;background:#f6fff7}
+        .file-drop input[type="file"]{display:none}
+        .fd-label{display:flex;align-items:center;gap:10px;color:#2e7d32;font-weight:700;cursor:pointer}
+        .fd-label i{font-size:18px}
+        .fd-name{margin-left:auto;color:#475569;font-weight:600}
+        .file-drop.drag{background:#e6ffed;border-color:#2e7d32}
+        #ats-score-display { font-weight: bold; font-size: 1.5em; }
+        #ats-feedback-box { border: 1px dashed #ccc; padding: 15px; background: #f0f0f0; margin-bottom: 20px; white-space: pre-wrap;}
+        .loading-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(255, 255, 255, 0.9); 
+            z-index: 1000; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 1.2em; 
+            color: #4CAF50; 
+            flex-direction: column;
+        }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Interactive Hover Button */
+        .ih-btn { position: relative; overflow: hidden; transition: transform .2s ease, box-shadow .2s ease; }
+        .ih-btn::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,.25), transparent 60%); transform: translate(-100%,-100%) rotate(25deg); transition: transform .6s ease; }
+        .ih-btn:hover::before { transform: translate(-20%,-20%) rotate(0); }
+        .ih-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 24px rgba(0,0,0,.15); }
+
+        /* Shimmer Button */
+        .shimmer-btn{position:relative;overflow:hidden}
+        .shimmer-btn::after{content:"";position:absolute;top:-50%;left:-30%;width:60%;height:200%;background:linear-gradient(90deg,transparent 0%,color-mix(in oklab, var(--accent) 30%, transparent) 45%, color-mix(in oklab, var(--accent) 80%, white) 50%, color-mix(in oklab, var(--accent) 30%, transparent) 55%,transparent 100%);transform:rotate(20deg) translateX(-120%);animation:atsShimmer 2.2s linear infinite;pointer-events:none}
+        @keyframes atsShimmer{0%{transform:rotate(20deg) translateX(-120%)}100%{transform:rotate(20deg) translateX(320%)}}
+
+        /* Fun Button 3 animation (uses --accent) */
+        .btn.third { border: 2px solid var(--accent, #3498db); border-radius: 0.6em; font-weight: 700; text-transform: uppercase; box-shadow: 0 0 40px 40px var(--accent, #3498db) inset, 0 0 0 0 var(--accent, #3498db); transition: all 150ms ease-in-out; }
+        .btn.third:hover { box-shadow: 0 0 10px 0 var(--accent, #3498db) inset, 0 0 10px 4px var(--accent, #3498db); }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-button shimmer-btn">← Back to Home</a>
+    
+    <div class="container">
+        <div class="header">
+            <h1>📊 ATS Score Checker</h1>
+            <p>Analyze your resume's ATS compatibility and get detailed feedback</p>
+        </div>
+        
+        <form id="ats-form">
+            <h2>Upload Your Resume (PDF)</h2>
+            <div class="file-drop" id="fd-resume">
+                <input type="file" id="resume_file" name="resume_file" accept=".pdf" required>
+                <label for="resume_file" class="fd-label"><i class="fas fa-upload"></i><span>Select PDF</span></label>
+                <span class="fd-name" id="resume_file_name">No file chosen</span>
+            </div>
+            
+            <button type="submit" id="analyze-button" class="ih-btn shimmer-btn btn third">Analyze ATS Score</button>
+        </form>
+        
+        <hr style="margin: 40px 0;">
+        
+        <div class="output-area">
+            <h2 style="margin-top: 10px;">General ATS Score: <span id="ats-score-display" style="color: #666;">--</span></h2>
+            <div id="ats-feedback-box">
+                ATS feedback will appear here after analysis.
+            </div>
+            
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <p style="margin-top: 20px;">Analyzing your resume...</p>
+    </div>
+
+    <script>
+        // Lightweight confetti side cannons using canvas-confetti CDN
+        (function(){
+            const s=document.createElement('script');
+            s.src='https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js';
+            document.head.appendChild(s);
+        })();
+
+        function launchSideCannons(){
+            if (!window.confetti) return;
+            const end = Date.now() + 3 * 1000;
+            const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
+            (function frame(){
+                if (Date.now() > end) return;
+                window.confetti({particleCount: 2, angle: 60, spread: 55, startVelocity: 60, origin: {x:0, y:0.5}, colors});
+                window.confetti({particleCount: 2, angle: 120, spread: 55, startVelocity: 60, origin: {x:1, y:0.5}, colors});
+                requestAnimationFrame(frame);
+            })();
+        }
+        
+        const form = document.getElementById('ats-form');
+        const analyzeButton = document.getElementById('analyze-button');
+        const atsScoreDisplay = document.getElementById('ats-score-display');
+        const atsFeedbackBox = document.getElementById('ats-feedback-box');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        (function(){
+            const fd = document.getElementById('fd-resume');
+            const fi = document.getElementById('resume_file');
+            const fn = document.getElementById('resume_file_name');
+            fi.addEventListener('change', ()=>{ fn.textContent = fi.files[0]? fi.files[0].name : 'No file chosen'; });
+            ['dragenter','dragover'].forEach(ev=>fd.addEventListener(ev, e=>{e.preventDefault();fd.classList.add('drag');}));
+            ['dragleave','drop'].forEach(ev=>fd.addEventListener(ev, e=>{e.preventDefault();fd.classList.remove('drag');}));
+            fd.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f){ fi.files = e.dataTransfer.files; fn.textContent=f.name; }});
+        })();
+        
+        // Store original resume text for ATS scoring
+        let originalResumeText = '';
+
+        // Function to reset the ATS display
+        function resetAtsDisplay() {
+            atsScoreDisplay.textContent = '--';
+            atsScoreDisplay.style.color = '#666';
+            atsFeedbackBox.textContent = 'ATS feedback will appear here after analysis.';
+        }
+
+        // Form submission logic
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const resumeFile = document.getElementById('resume_file').files[0];
+
+            if (!resumeFile) {
+                alert("Please upload a resume (PDF) to analyze.");
+                return;
+            }
+
+            resetAtsDisplay();
+            
+            const formData = new FormData();
+            formData.append('resume', resumeFile);
+
+            loadingOverlay.style.display = 'flex';
+            analyzeButton.disabled = true;
+
+            try {
+                const response = await fetch('/upload_resume_for_ats', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    originalResumeText = result.original_resume;
+                    
+                    // Now call ATS analysis
+                    await analyzeATS();
+                } else {
+                    atsFeedbackBox.textContent = `Error: ${result.error || 'An unknown error occurred.'}`;
+                }
+            } catch (error) {
+                atsFeedbackBox.textContent = `Network Error: Could not connect to the server.`;
+            } finally {
+                loadingOverlay.style.display = 'none';
+                analyzeButton.disabled = false;
+            }
+        });
+
+        // ATS Analysis function
+        async function analyzeATS() {
+            if (!originalResumeText || originalResumeText.trim() === '') {
+                alert("Resume text not available for analysis.");
+                return;
+            }
+
+            analyzeButton.disabled = true;
+            atsScoreDisplay.textContent = 'Calculating...';
+            atsScoreDisplay.style.color = '#FFA500'; 
+            atsFeedbackBox.textContent = 'Analyzing original resume for general ATS compatibility...';
+
+            const payload = {
+                original_resume: originalResumeText
+            };
+
+            try {
+                const response = await fetch('/get_ats_score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.ats_score !== undefined) {
+                    const score = result.ats_score;
+                    atsScoreDisplay.textContent = `${score}%`;
+                    // Color code the score
+                    if (score >= 75) {
+                        atsScoreDisplay.style.color = '#4CAF50';
+                    } else if (score >= 50) {
+                        atsScoreDisplay.style.color = '#FFD700';
+                    } else {
+                        atsScoreDisplay.style.color = '#FF0000';
+                    }
+                    
+                    atsFeedbackBox.innerHTML = `
+                        <p><strong>Overall Assessment:</strong> ${result.overall_assessment}</p>
+                        <p><strong>Strengths:</strong> ${result.strengths}</p>
+                        <p><strong>Areas for Improvement:</strong> ${result.improvements}</p>
+                    `;
+                    // Confetti animation (side cannons)
+                    try { launchSideCannons(); } catch(e) {}
+                } else {
+                    atsScoreDisplay.textContent = 'Failed';
+                    atsScoreDisplay.style.color = '#FF0000';
+                    atsFeedbackBox.textContent = `Error: ${result.error || 'Could not calculate score.'}`;
+                }
+
+            } catch (error) {
+                atsScoreDisplay.textContent = 'Error';
+                atsScoreDisplay.style.color = '#FF0000';
+                atsFeedbackBox.textContent = `Network Error: Could not reach scoring server.`;
+            } finally {
+                analyzeButton.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

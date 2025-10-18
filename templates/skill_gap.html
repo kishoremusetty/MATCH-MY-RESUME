@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skill Gap Analysis - AI Resume Perfecter</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; background: linear-gradient(120deg, #fff3e0 0%, #ffffff 50%, #e3f2fd 100%); }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            margin-top: 80px; /* Add top margin to avoid overlap with back button */
+            background: #fff; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+            position: relative; 
+        }
+        .container::before { content: ""; position: absolute; inset: 0; padding: 2px; border-radius: 12px; background: linear-gradient(120deg, #fff, #a0b4ff, #ffd1e3, #b3ffd6, #fff); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: shine 3s linear infinite; pointer-events: none; }
+        @keyframes shine { 0% { filter: hue-rotate(0deg);} 100% { filter: hue-rotate(360deg);} }
+        .header { text-align: center; margin-bottom: 30px; }
+        h1 { color: #FF9800; margin-bottom: 10px; }
+        .back-button { 
+            position: fixed; 
+            top: 20px; 
+            left: 20px; 
+            background: #666; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            text-decoration: none;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .back-button:hover { 
+            background: #555; 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        textarea, input[type="file"] { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 200px; resize: vertical; }
+        button { padding: 12px 20px; background-color: #FF9800; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover:not(:disabled) { background-color: #F57C00; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        /* File Drop */
+        .file-drop{border:2px dashed #FF9800;border-radius:12px;padding:18px;display:flex;align-items:center;gap:12px;background:#fff8f0}
+        .file-drop input[type="file"]{display:none}
+        .fd-label{display:flex;align-items:center;gap:10px;color:#F57C00;font-weight:700;cursor:pointer}
+        .fd-label i{font-size:18px}
+        .fd-name{margin-left:auto;color:#475569;font-weight:600}
+        .file-drop.drag{background:#ffedd5;border-color:#F57C00}
+        #skill-gap-status { font-weight: bold; font-size: 1.2em; }
+        .skill-gap-section { margin-bottom: 20px; }
+        .matching-skills-box { border: 1px solid #4CAF50; padding: 15px; background: #f8fff8; margin-bottom: 15px; border-radius: 4px; }
+        .improvements-box { border: 1px solid #FF6B35; padding: 15px; background: #fff8f5; border-radius: 4px; }
+        .loading-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(255, 255, 255, 0.9); 
+            z-index: 1000; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 1.2em; 
+            color: #FF9800; 
+            flex-direction: column;
+        }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #FF9800;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Interactive Hover Button */
+        .ih-btn { position: relative; overflow: hidden; transition: transform .2s ease, box-shadow .2s ease; }
+        .ih-btn::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,.25), transparent 60%); transform: translate(-100%,-100%) rotate(25deg); transition: transform .6s ease; }
+        .ih-btn:hover::before { transform: translate(-20%,-20%) rotate(0); }
+        .ih-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 24px rgba(0,0,0,.15); }
+
+        
+    </style>
+</head>
+<body>
+    <a href="/" class="back-button">← Back to Home</a>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Skill Gap Analysis</h1>
+            <p>Compare your skills with job requirements and identify areas for improvement</p>
+        </div>
+        
+        <form id="skill-gap-form">
+            <div class="grid-layout">
+                <div>
+                    <h2>Job Description</h2>
+                    <textarea id="job_description" name="job_description" placeholder="Paste the full job description here..." required></textarea>
+                </div>
+                <div>
+                    <h2>Upload Resume (PDF)</h2>
+                    <div class="file-drop" id="fd-resume">
+                        <input type="file" id="resume_file" name="resume_file" accept=".pdf" required>
+                        <label for="resume_file" class="fd-label"><i class="fas fa-upload"></i><span>Select PDF</span></label>
+                        <span class="fd-name" id="resume_file_name">No file chosen</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" id="analyze-button" class="ih-btn">Analyze Skill Gap</button>
+        </form>
+        
+        <hr style="margin: 40px 0;">
+        
+        <div class="output-area">
+            <h2 style="margin-top: 20px;">Skill Gap Analysis: <span id="skill-gap-status" style="color: #666;">--</span></h2>
+            <div id="skill-gap-display" style="display: none;">
+                <div class="skill-gap-section">
+                    <h3 style="color: #4CAF50; margin-bottom: 10px;">✅ Matching Skills</h3>
+                    <div id="matching-skills-box" class="matching-skills-box">
+                        Skills matching between your resume and job description will appear here.
+                    </div>
+                </div>
+                <div class="skill-gap-section">
+                    <h3 style="color: #FF6B35; margin-bottom: 10px;">📈 Improvements</h3>
+                    <div id="improvements-box" class="improvements-box">
+                        Missing skills and areas for improvement will appear here.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <p style="margin-top: 20px;">Analyzing skill gaps...</p>
+    </div>
+
+    <script>
+        const form = document.getElementById('skill-gap-form');
+        const analyzeButton = document.getElementById('analyze-button');
+        const skillGapStatus = document.getElementById('skill-gap-status');
+        const skillGapDisplay = document.getElementById('skill-gap-display');
+        const matchingSkillsBox = document.getElementById('matching-skills-box');
+        (function(){
+            const fd = document.getElementById('fd-resume');
+            const fi = document.getElementById('resume_file');
+            const fn = document.getElementById('resume_file_name');
+            fi.addEventListener('change', ()=>{ fn.textContent = fi.files[0]? fi.files[0].name : 'No file chosen'; });
+            ['dragenter','dragover'].forEach(ev=>fd.addEventListener(ev, e=>{e.preventDefault();fd.classList.add('drag');}));
+            ['dragleave','drop'].forEach(ev=>fd.addEventListener(ev, e=>{e.preventDefault();fd.classList.remove('drag');}));
+            fd.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f){ fi.files = e.dataTransfer.files; fn.textContent=f.name; }});
+        })();
+        const improvementsBox = document.getElementById('improvements-box');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        
+        // Store original resume text
+        let originalResumeText = '';
+
+        // Function to reset the skill gap display
+        function resetSkillGapDisplay() {
+            skillGapStatus.textContent = '--';
+            skillGapStatus.style.color = '#666';
+            skillGapDisplay.style.display = 'none';
+            matchingSkillsBox.textContent = 'Skills matching between your resume and job description will appear here.';
+            improvementsBox.textContent = 'Missing skills and areas for improvement will appear here.';
+        }
+
+        // Form submission logic
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const jobDescription = document.getElementById('job_description').value;
+            const resumeFile = document.getElementById('resume_file').files[0];
+
+            if (!jobDescription || !resumeFile) {
+                alert("Please provide both the Job Description and upload a Resume (PDF).");
+                return;
+            }
+
+            resetSkillGapDisplay();
+            
+            // First, extract text from PDF
+            const formData = new FormData();
+            formData.append('resume', resumeFile);
+
+            loadingOverlay.style.display = 'flex';
+            analyzeButton.disabled = true;
+
+            try {
+                // Extract text from PDF
+                const uploadResponse = await fetch('/upload_resume_for_skill_gap', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const uploadResult = await uploadResponse.json();
+
+                if (!uploadResponse.ok) {
+                    throw new Error(uploadResult.error || 'Failed to process resume');
+                }
+
+                originalResumeText = uploadResult.resume_text;
+                
+                // Now perform skill gap analysis
+                await analyzeSkillGap();
+
+            } catch (error) {
+                skillGapStatus.textContent = 'Error';
+                skillGapStatus.style.color = '#FF0000';
+                matchingSkillsBox.textContent = `Error: ${error.message}`;
+                improvementsBox.textContent = 'Analysis could not be completed.';
+            } finally {
+                loadingOverlay.style.display = 'none';
+                analyzeButton.disabled = false;
+            }
+        });
+
+        // Skill Gap Analysis function
+        async function analyzeSkillGap() {
+            if (!originalResumeText || originalResumeText.trim() === '') {
+                alert("Resume text not available for analysis.");
+                return;
+            }
+
+            const jobDescription = document.getElementById('job_description').value;
+
+            analyzeButton.disabled = true;
+            skillGapStatus.textContent = 'Analyzing...';
+            skillGapStatus.style.color = '#FFA500';
+            skillGapDisplay.style.display = 'block';
+            matchingSkillsBox.textContent = 'Analyzing skills and comparing with job requirements...';
+            improvementsBox.textContent = 'Identifying missing skills and areas for improvement...';
+
+            const payload = {
+                job_description: jobDescription,
+                resume_text: originalResumeText
+            };
+
+            try {
+                const response = await fetch('/analyze_skill_gap', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.matching_skills && result.improvements) {
+                    skillGapStatus.textContent = 'Analysis Complete';
+                    skillGapStatus.style.color = '#4CAF50';
+                    
+                    // Display matching skills
+                    matchingSkillsBox.innerHTML = result.matching_skills;
+                    
+                    // Display improvements
+                    improvementsBox.innerHTML = result.improvements;
+                } else {
+                    skillGapStatus.textContent = 'Analysis Failed';
+                    skillGapStatus.style.color = '#FF0000';
+                    matchingSkillsBox.textContent = `Error: ${result.error || 'Could not analyze skill gaps.'}`;
+                    improvementsBox.textContent = 'Analysis could not be completed.';
+                }
+
+            } catch (error) {
+                skillGapStatus.textContent = 'Network Error';
+                skillGapStatus.style.color = '#FF0000';
+                matchingSkillsBox.textContent = 'Network Error: Could not reach skill gap analysis server.';
+                improvementsBox.textContent = 'Analysis could not be completed due to network issues.';
+            } finally {
+                analyzeButton.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

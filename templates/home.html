@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Perfecter - Home</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            /* Light, airy background similar to screenshot (remove strong blue) */
+            background: radial-gradient(1200px 600px at 50% -10%, rgba(0, 255, 241, 0.15), transparent 60%),
+                        radial-gradient(900px 500px at 20% 80%, rgba(255, 0, 170, 0.12), transparent 65%),
+                        radial-gradient(700px 400px at 80% 85%, rgba(0, 255, 241, 0.12), transparent 65%),
+                        linear-gradient(180deg, #f6f9fc 0%, #f1f5f9 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: #fff; 
+            padding: 40px; 
+            border-radius: 22px; 
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            position: relative;
+        }
+        /* Neon Gradient Card wrapper (mimics <NeonGradientCard />) */
+        .neon-card {
+            --first: #ff00aa;
+            --second: #00FFF1;
+            position: relative;
+            padding: 3px; /* gradient border thickness */
+            border-radius: 24px;
+            background: linear-gradient(135deg, var(--first), var(--second));
+            background-size: 200% 200%;
+            animation: neonShift 8s ease infinite;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 0 0 rgba(0,0,0,0);
+        }
+        .neon-card:hover { transform: translateY(-2px); }
+        .neon-card::before {
+            content: "";
+            position: absolute;
+            inset: -14px; /* outer glow spread */
+            border-radius: inherit;
+            background:
+                radial-gradient(60% 60% at 30% 20%, color-mix(in oklab, var(--first) 35%, transparent) 0%, transparent 60%),
+                radial-gradient(50% 50% at 75% 65%, color-mix(in oklab, var(--second) 35%, transparent) 0%, transparent 60%);
+            filter: blur(22px);
+            opacity: 0.7;
+            z-index: -1;
+            pointer-events: none;
+        }
+        @keyframes neonShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        h1 { 
+            color: #1a73e8; 
+            margin-bottom: 10px; 
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(260px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+            align-items: stretch;
+        }
+        .hero-wrap {
+            display: grid; grid-template-columns: 1fr; gap: 24px; align-items: center; justify-items: center;
+        }
+        .hero-image {
+            width: 100%; height: 260px; border-radius: 16px; object-fit: cover; box-shadow: 0 12px 24px rgba(0,0,0,.15);
+        }
+        .feature-button {
+            background: linear-gradient(135deg, var(--c1, #ff00aa) 0%, var(--c2, #00FFF1) 100%);
+            color: #1f2937; /* dark text */
+            border: none;
+            border-radius: 15px;
+            padding: 30px 20px;
+            cursor: pointer;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+            text-decoration: none;
+            display: block;
+            box-shadow: 0 8px 18px color-mix(in oklab, var(--glow, rgba(255,0,170,0.35)) 60%, transparent);
+            position: relative;
+            overflow: hidden;
+            z-index: 0;
+        }
+        /* Shimmer effect */
+        .shimmer-btn { position: relative; overflow: hidden; }
+        .shimmer-btn::after {
+            content: "";
+            position: absolute;
+            top: -50%; left: -30%;
+            width: 60%; height: 200%;
+            background: linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--c2, #00FFF1) 30%, transparent) 45%, color-mix(in oklab, var(--c2, #00FFF1) 85%, white) 50%, color-mix(in oklab, var(--c2, #00FFF1) 30%, transparent) 55%, transparent 100%);
+            transform: rotate(20deg) translateX(-120%);
+            animation: shimmer 2.2s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes shimmer {
+            0% { transform: rotate(20deg) translateX(-120%); }
+            100% { transform: rotate(20deg) translateX(320%); }
+        }
+        /* Neon border like a card wrapper using the button's own colors */
+        .feature-button::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            padding: 2px; /* border thickness */
+            border-radius: 15px;
+            background: linear-gradient(135deg, var(--c1, #ff00aa), var(--c2, #00FFF1));
+            -webkit-mask:
+                linear-gradient(#000 0 0) content-box,
+                linear-gradient(#000 0 0);
+            mask:
+                linear-gradient(#000 0 0) content-box,
+                linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+                    mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0.95;
+        }
+        .feature-button::after {
+            content: "";
+            position: absolute;
+            top: -120%; left: -30%;
+            width: 60%; height: 340%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 45%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0.35) 55%, transparent 100%);
+            transform: rotate(20deg);
+            transition: transform 0.6s ease, left 0.6s ease, opacity 0.4s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .feature-button:hover {
+            transform: scale(1.12);
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.15) inset,
+                        0 12px 26px color-mix(in oklab, var(--glow, rgba(255,0,170,0.45)) 80%, transparent),
+                        0 0 22px var(--glow, rgba(255,0,170,0.45));
+        }
+        .feature-button:hover::after {
+            left: 120%;
+            opacity: 1;
+        }
+        .feature-button i {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+        .feature-button h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.5em;
+        }
+        .feature-button p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 1em;
+        }
+        .ats-button { /* light green shiny */
+            --c1: #b9ffb0; --c2: #6dffb5; --glow: rgba(109, 255, 181, 0.5);
+        }
+        .ats-button:hover {
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.15) inset,
+                        0 12px 26px color-mix(in oklab, var(--glow) 80%, transparent),
+                        0 0 22px var(--glow);
+        }
+        .skill-button { /* orange shiny */
+            --c1: #ffd48a; --c2: #ff8a00; --glow: rgba(255, 138, 0, 0.5);
+        }
+        .skill-button:hover {
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.15) inset,
+                        0 12px 26px color-mix(in oklab, var(--glow) 80%, transparent),
+                        0 0 22px var(--glow);
+        }
+        .resume-button { /* sky blue shiny */
+            --c1: #7fd3ff; --c2: #00b7ff; --glow: rgba(0, 183, 255, 0.5);
+        }
+        .resume-button:hover {
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.15) inset,
+                        0 12px 26px color-mix(in oklab, var(--glow) 80%, transparent),
+                        0 0 22px var(--glow);
+        }
+        .cover-button { /* light violet shiny */
+            --c1: #e3c8ff; --c2: #a78bfa; --glow: rgba(167, 139, 250, 0.5);
+        }
+        .cover-button:hover {
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.15) inset,
+                        0 12px 26px color-mix(in oklab, var(--glow) 80%, transparent),
+                        0 0 22px var(--glow);
+        }
+        .footer {
+            margin-top: 40px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        /* Interactive Hover Button effect (applied to all buttons via .ih-btn) */
+        .ih-btn {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .ih-btn::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.2), transparent 60%);
+            transform: translate(-100%, -100%) rotate(25deg);
+            transition: transform 0.6s ease;
+        }
+        .ih-btn:hover::before { transform: translate(-20%, -20%) rotate(0deg); }
+        .ih-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 24px rgba(0,0,0,0.2); }
+
+        
+    </style>
+</head>
+<body>
+    <div class="neon-card">
+        <div class="container">
+        <h1>AI Resume Perfecter</h1>
+        <p class="subtitle">Powerful AI-driven tools to enhance your career prospects</p>
+        <div class="hero-wrap">
+            <div>
+                <div class="button-grid">
+                    <a href="/ats-checker" class="feature-button ats-button ih-btn shimmer-btn">
+                        <i class="fas fa-chart-line"></i>
+                        <h3>ATS Score Checker</h3>
+                        <p>Analyze your resume's ATS compatibility and get detailed feedback on how to improve it</p>
+                    </a>
+                    
+                    <a href="/skill-gap" class="feature-button skill-button ih-btn shimmer-btn">
+                        <i class="fas fa-search"></i>
+                        <h3>Analyze Skill Gap</h3>
+                        <p>Compare your skills with job requirements and identify areas for improvement</p>
+                    </a>
+                    
+                    <a href="/resume-generator" class="feature-button resume-button ih-btn shimmer-btn">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>Generate Resume</h3>
+                        <p>Create an optimized resume tailored to specific job descriptions</p>
+                    </a>
+                    
+                    <a href="/cover-letter" class="feature-button cover-button ih-btn shimmer-btn">
+                        <i class="fas fa-envelope"></i>
+                        <h3>Generate Cover Letter</h3>
+                        <p>Create professional cover letters that complement your resume</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</body>
+</html>

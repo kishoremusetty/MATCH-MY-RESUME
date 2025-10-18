@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Generator - AI Resume Perfecter</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.plugin.html2canvas.min.js"></script>
+    
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            color: #333; 
+            background: linear-gradient(120deg, #e3f2fd 0%, #ffffff 50%, #ede7f6 100%); 
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            margin-top: 80px; /* Add top margin to avoid overlap with back button */
+            background: #fff; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+            position: relative; 
+        }
+        .resume-container { 
+            width: 100%; 
+            max-width: 8.5in; 
+            margin: 0 auto; 
+            background: #fff; 
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .container::before { content: ""; position: absolute; inset: 0; padding: 2px; border-radius: 12px; background: linear-gradient(120deg, #fff, #a0b4ff, #ffd1e3, #b3ffd6, #fff); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: shine 3s linear infinite; pointer-events: none; }
+        @keyframes shine { 0% { filter: hue-rotate(0deg);} 100% { filter: hue-rotate(360deg);} }
+        .header { text-align: center; margin-bottom: 30px; }
+        h1 { color: #1a73e8; margin-bottom: 10px; }
+        .back-button { 
+            position: fixed; 
+            top: 20px; 
+            left: 20px; 
+            background: #666; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            text-decoration: none;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .back-button:hover { 
+            background: #555; 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        textarea, input[type="file"] { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 200px; resize: vertical; }
+        button { padding: 12px 20px; background-color: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover:not(:disabled) { background-color: #155bb5; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .output-controls { text-align: right; margin-bottom: 10px; display: flex; justify-content: flex-end; gap: 10px;}
+        
+        /* Preview Box Styling */
+        #preview-box { 
+            font-family: Arial, sans-serif;
+            font-size: var(--fs-base, 10.5pt); 
+            line-height: 1.4; 
+            border: 1px solid #ddd; 
+            padding: 20px; 
+            min-height: 400px; 
+            background-color: #fafafa; 
+            margin-top: 10px; 
+            outline: none; 
+            white-space: pre-wrap;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            box-sizing: border-box;
+            page-break-inside: avoid;
+            text-align: left;
+            hyphens: auto;
+            max-width: none;
+        }
+        /* Cleaner snapshot for export */
+        #preview-box.exporting{ 
+            background:#ffffff; 
+            border:none; 
+            box-shadow:none; 
+            padding: 15px;
+            margin: 0;
+            width: 100%;
+            max-width: none;
+        }
+        #preview-box h1, #preview-box h2, #preview-box h3 {
+            font-size: 15px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+            margin: 8px 0 4px 0;
+        }
+        #preview-box strong, #preview-box b { font-weight: 700 !important; }
+        #preview-box p, #preview-box div {
+            margin: 4px 0;
+            line-height: 1.3;
+        }
+        #preview-box ul, #preview-box ol {
+            margin: 4px 0;
+            padding-left: 20px;
+        }
+        #preview-box li {
+            margin: 2px 0;
+        }
+        
+        /* Page break styling */
+        .page-break {
+            page-break-before: always;
+            border-top: 2px solid #333;
+            margin-top: 20px;
+            padding-top: 20px;
+        }
+        
+        .single-page {
+            max-height: 11in;
+            overflow: hidden;
+        }
+        
+        .multi-page {
+            min-height: 11in;
+        }
+
+        /* Rich Text Toolbar Styles */
+        .toolbar-group { position: relative; display: inline-block; margin-right: 5px; }
+        #text-toolbar button, #text-toolbar select {
+            padding: 5px 10px;
+            margin: 2px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .color-picker-dropdown {
+            position: absolute;
+            top: 100%; 
+            left: 0;
+            z-index: 10;
+            margin-top: 5px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            padding: 8px;
+            display: none; 
+        }
+        .color-swatch-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 5px;
+        }
+        .color-swatch {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.1s;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+
+        /* Loading Spinner */
+        .loading-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(255, 255, 255, 0.9); 
+            z-index: 1000; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 1.2em; 
+            color: #1a73e8; 
+            flex-direction: column;
+        }
+        .gemini-spinner {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            position: relative;
+            background: conic-gradient(#4285F4, #34A853, #FBBC05, #EA4335, #4285F4); 
+            animation: rotate 2s linear infinite;
+        }
+        .inner-circle {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 88%; 
+            height: 88%;
+            border-radius: 50%;
+            background-color: #f4f7f9; 
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+        @keyframes rotate {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Page indicator */
+        #page-indicator {
+            text-align: center; 
+            margin-bottom: 10px; 
+            font-weight: bold; 
+            color: #666;
+        }
+
+        /* Interactive Hover Button */
+        .ih-btn { position: relative; overflow: hidden; transition: transform .2s ease, box-shadow .2s ease; }
+        .ih-btn::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,.25), transparent 60%); transform: translate(-100%,-100%) rotate(25deg); transition: transform .6s ease; }
+        .ih-btn:hover::before { transform: translate(-20%,-20%) rotate(0); }
+        .ih-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 24px rgba(0,0,0,.15); }
+
+        /* Shimmer Button */
+        .shimmer-btn{position:relative;overflow:hidden}
+        .shimmer-btn::after{content:"";position:absolute;top:-50%;left:-30%;width:60%;height:200%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.25) 45%,rgba(255,255,255,.8) 50%,rgba(255,255,255,.25) 55%,transparent 100%);transform:rotate(20deg) translateX(-120%);animation:rgShimmer 2.2s linear infinite;pointer-events:none}
+        @keyframes rgShimmer{0%{transform:rotate(20deg) translateX(-120%)}100%{transform:rotate(20deg) translateX(320%)}}
+        /* Themed textarea border */
+        textarea#job_description{border-color:#1a73e8}
+        textarea#job_description:focus{outline:none;border-color:#155bb5;box-shadow:0 0 0 3px rgba(26,115,232,.15)}
+        /* Fun Button 3 (blue accent) */
+        .btn.third { border: 2px solid #1a73e8; border-radius: 0.6em; font-weight: 700; text-transform: uppercase; box-shadow: 0 0 40px 40px #1a73e8 inset, 0 0 0 0 #1a73e8; transition: all 150ms ease-in-out; }
+        .btn.third:hover { box-shadow: 0 0 10px 0 #1a73e8 inset, 0 0 10px 4px #1a73e8; }
+
+        /* Chatbot */
+        .chat-launcher{position:fixed;right:24px;bottom:24px;background:#1a73e8;color:#fff;border:none;border-radius:30px;padding:12px 16px;font-weight:700;cursor:pointer;z-index:9999}
+        .chat-panel{position:fixed;right:24px;bottom:84px;width:340px;max-height:60vh;background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 12px 24px rgba(0,0,0,.2);display:none;flex-direction:column;overflow:hidden;z-index:9999}
+        .chat-header{padding:10px 12px;background:#1a73e8;color:#fff;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+        .chat-body{padding:10px;overflow:auto;flex:1;background:#f8fafc}
+        .chat-msg{margin:6px 0;font-size:13px}
+        .chat-msg.user{color:#111827;text-align:right}
+        .chat-msg.bot{color:#334155}
+        .chat-input{display:flex;padding:8px;background:#fff;border-top:1px solid #e5e7eb}
+        .chat-input input{flex:1;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;margin-right:8px}
+        .chat-input button{padding:8px 12px;background:#1a73e8;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer}
+
+        /* File Drop */
+        .file-drop{border:2px dashed #1a73e8;border-radius:12px;padding:18px;display:flex;align-items:center;gap:12px;background:#f8fbff}
+        .file-drop input[type="file"]{display:none}
+        .fd-label{display:flex;align-items:center;gap:10px;color:#155bb5;font-weight:700;cursor:pointer}
+        .fd-label i{font-size:18px}
+        .fd-name{margin-left:auto;color:#475569;font-weight:600}
+        .file-drop.drag{background:#e8f1ff;border-color:#155bb5}
+    </style>
+</head>
+<body>
+    <a href="/" class="back-button shimmer-btn">← Back to Home</a>
+    
+    <div class="container">
+        <div class="header">
+            <h1>📝 Resume Generator</h1>
+            <p>Generate an optimized resume tailored to specific job descriptions</p>
+        </div>
+        
+        <form id="rewrite-form">
+            <div class="grid-layout">
+                <div>
+                    <h2>Job Description</h2>
+                    <textarea id="job_description" name="job_description" placeholder="Paste the full job description here..." required></textarea>
+                </div>
+                <div>
+                    <h2>Upload Resume (PDF)</h2>
+                    <div class="file-drop" id="fd-resume">
+                        <input type="file" id="resume_file" name="resume_file" accept=".pdf" required>
+                        <label for="resume_file" class="fd-label"><i class="fas fa-upload"></i><span>Select PDF</span></label>
+                        <span class="fd-name" id="resume_file_name">No file chosen</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" id="submit-button" class="ih-btn shimmer-btn btn third">Generate Perfected Resume</button>
+        </form>
+        
+        <hr style="margin: 40px 0;">
+
+        <div class="output-area">
+            <div class="output-controls">
+                <button id="download-resume-btn" class="ih-btn shimmer-btn" disabled>Download Resume PDF</button>
+            </div>
+            
+            <h2>Editable Preview of Rewritten Resume</h2>
+            <div id="page-indicator">
+                <span id="page-status">Single Page</span>
+            </div>
+            
+            <div id="text-toolbar" style="border: 1px solid #ccc; background: #eee; padding: 5px; margin-bottom: 5px; display: flex; align-items: center;">
+                <button title="Bold" onclick="execCmd('bold')"><i class="fas fa-bold"></i></button>
+                <button title="Italic" onclick="execCmd('italic')"><i class="fas fa-italic"></i></button>
+                <button title="Underline" onclick="execCmd('underline')"><i class="fas fa-underline"></i></button>
+                <button title="Strikethrough" onclick="execCmd('strikethrough')"><i class="fas fa-strikethrough"></i></button>
+                
+                <div class="toolbar-group">
+                    <button title="Font Color" id="font-color-toggle" onclick="toggleColorPicker()"><i class="fas fa-fill-drip"></i></button>
+                    <div id="color-picker-dropdown" class="color-picker-dropdown">
+                        <div class="color-swatch-grid">
+                            <button class="color-swatch" style="background-color: #000;" data-color="#000" onclick="applyColor('#000')"></button>
+                            <button class="color-swatch" style="background-color: #333;" data-color="#333" onclick="applyColor('#333')"></button>
+                            <button class="color-swatch" style="background-color: #4285F4;" data-color="#4285F4" onclick="applyColor('#4285F4')"></button>
+                            <button class="color-swatch" style="background-color: #34A853;" data-color="#34A853" onclick="applyColor('#34A853')"></button>
+                            <button class="color-swatch" style="background-color: #EA4335;" data-color="#EA4335" onclick="applyColor('#EA4335')"></button>
+                            <button class="color-swatch" style="background-color: #FBBC05;" data-color="#FBBC05" onclick="applyColor('#FBBC05')"></button>
+                            <button class="color-swatch" style="background-color: #8A2BE2;" data-color="#8A2BE2" onclick="applyColor('#8A2BE2')"></button>
+                            <button class="color-swatch" style="background-color: #FFFFFF; border: 1px solid #000;" data-color="#FFFFFF" onclick="applyColor('#FFFFFF')"></button>
+                        </div>
+                    </div>
+                </div>
+                <select onchange="execCmd('fontSize', this.value); this.value=''" title="Font Size" style="margin-left: 10px;">
+                    <option value="" disabled selected>Size</option>
+                    <option value="3">Small</option>
+                    <option value="5">Medium</option>
+                    <option value="7">Large</option>
+                </select>
+                
+                <select onchange="execCmd(this.value); this.value=''" title="Alignment">
+                    <option value="" disabled selected>Align</option>
+                    <option value="justifyLeft">Left</option>
+                    <option value="justifyCenter">Center</option>
+                    <option value="justifyRight">Right</option>
+                    <option value="justifyFull">Justify</option>
+                </select>
+                
+                <select id="border-select" title="Page Border">
+                    <option value="none">No Border</option>
+                    <option value="solid-thin">Solid Thin</option>
+                    <option value="dashed-thick">Dashed Thick</option>
+                    <option value="double">Double Line</option>
+                </select>
+            </div>
+            
+            <div class="resume-container">
+            <div id="preview-box" contenteditable="true">
+                The generated resume will appear here.
+                </div>
+            </div>
+
+            <!-- Chatbot UI -->
+            <button class="chat-launcher" id="resume-chat-launcher">💬 Resume Assistant</button>
+            <div class="chat-panel" id="resume-chat-panel">
+                <div class="chat-header">Resume Assistant <button id="resume-chat-close" style="background:transparent;border:none;color:#fff;font-weight:700;cursor:pointer">×</button></div>
+                <div class="chat-body" id="resume-chat-body"></div>
+                <div class="chat-input">
+                    <input id="resume-chat-input" placeholder="Type a command..."/>
+                    <button id="resume-chat-send">Send</button>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="gemini-spinner">
+            <div class="inner-circle"></div>
+        </div>
+        <p style="margin-top: 20px;">resume matcher is analysing ...</p>
+    </div>
+
+    <script>
+        // Confetti helper
+        (function(){
+            const s=document.createElement('script');
+            s.src='https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js';
+            document.head.appendChild(s);
+        })();
+        function launchSideCannons(){
+            if (!window.confetti) return;
+            const end = Date.now() + 3 * 1000;
+            const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
+            (function frame(){
+                if (Date.now() > end) return;
+                window.confetti({particleCount: 2, angle: 60, spread: 55, startVelocity: 60, origin: {x:0, y:0.5}, colors});
+                window.confetti({particleCount: 2, angle: 120, spread: 55, startVelocity: 60, origin: {x:1, y:0.5}, colors});
+                requestAnimationFrame(frame);
+            })();
+        }
+        const form = document.getElementById('rewrite-form');
+        const previewBox = document.getElementById('preview-box');
+        const submitButton = document.getElementById('submit-button');
+        const downloadResumeBtn = document.getElementById('download-resume-btn');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const borderSelect = document.getElementById('border-select');
+        const colorPickerDropdown = document.getElementById('color-picker-dropdown');
+
+        // Utility Functions
+        function execCmd(command, value = null) {
+            document.execCommand(command, false, value);
+            previewBox.focus();
+        }
+
+        // File drop/filename handlers for resume upload
+        (function(){
+            const fd = document.getElementById('fd-resume');
+            const fi = document.getElementById('resume_file');
+            const fn = document.getElementById('resume_file_name');
+            if (fd && fi && fn) {
+                fi.addEventListener('change', ()=>{ fn.textContent = fi.files && fi.files[0] ? fi.files[0].name : 'No file chosen'; });
+                ['dragenter','dragover'].forEach(ev=>fd.addEventListener(ev, e=>{e.preventDefault();fd.classList.add('drag');}));
+                ['dragleave','drop'].forEach(ev=>fd.addEventListener(ev, e=>{e.preventDefault();fd.classList.remove('drag');}));
+                fd.addEventListener('drop', e=>{ const f=e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files[0] : null; if(f){ fi.files = e.dataTransfer.files; fn.textContent=f.name; fi.dispatchEvent(new Event('change')); }});
+            }
+        })();
+
+        function toggleColorPicker() {
+            colorPickerDropdown.style.display = colorPickerDropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function applyColor(hexColor) {
+            execCmd('foreColor', hexColor);
+            toggleColorPicker();
+        }
+        
+        // Hide color picker if user clicks outside
+        document.addEventListener('click', function(event) {
+            const fontColorToggle = document.getElementById('font-color-toggle');
+            const isClickInside = fontColorToggle.contains(event.target) || colorPickerDropdown.contains(event.target);
+            if (!isClickInside) {
+                colorPickerDropdown.style.display = 'none';
+            }
+        });
+
+        // Border Logic
+        borderSelect.addEventListener('change', function() {
+            applyBorderToResume(this.value);
+        });
+        
+        function applyBorderToResume(borderType) {
+            previewBox.classList.remove('single-page', 'multi-page');
+            previewBox.style.border = '1px solid #ddd';
+            previewBox.style.borderStyle = 'solid';
+            previewBox.style.borderWidth = '1px';
+            previewBox.style.borderColor = '#ddd';
+            // default content padding (no border)
+            previewBox.style.padding = '0';
+
+            switch (borderType) {
+                case 'none':
+                    previewBox.style.border = 'none';
+                    break;
+                case 'solid-thin':
+                    previewBox.style.border = '1px solid #333';
+                    previewBox.style.borderColor = '#333';
+                    previewBox.style.padding = '1cm';
+                    break;
+                case 'dashed-thick':
+                    previewBox.style.border = '3px dashed #666';
+                    previewBox.style.borderColor = '#666';
+                    previewBox.style.padding = '1cm';
+                    break;
+                case 'double':
+                    previewBox.style.border = '6px double #333';
+                    previewBox.style.borderColor = '#333';
+                    previewBox.style.padding = '1cm';
+                    break;
+            }
+            
+            checkPageLength();
+        }
+        
+        function checkPageLength() {
+            const originalMaxHeight = previewBox.style.maxHeight;
+            previewBox.style.maxHeight = 'none';
+            
+            const contentHeight = previewBox.scrollHeight;
+            const maxSinglePageHeight = (11 * 96) - 40; // 1016 pixels
+            
+            previewBox.style.maxHeight = originalMaxHeight;
+            
+            const pageStatus = document.getElementById('page-status');
+            
+            // Auto-fit: reduce base font size in small steps until it fits or we reach a lower bound
+            const basePt = 10.5;
+            let sizePt = basePt;
+            let safety = 0;
+            previewBox.style.setProperty('--fs-base', sizePt + 'pt');
+            while (previewBox.scrollHeight > maxSinglePageHeight && sizePt > 8.5 && safety < 20) {
+                sizePt -= 0.25;
+                previewBox.style.setProperty('--fs-base', sizePt + 'pt');
+                safety++;
+            }
+
+            if (previewBox.scrollHeight > maxSinglePageHeight) {
+                previewBox.classList.remove('single-page');
+                previewBox.classList.add('multi-page');
+                
+                const currentBorder = previewBox.style.border;
+                if (currentBorder && currentBorder !== 'none') {
+                    previewBox.style.border = currentBorder;
+                }
+                
+                if (pageStatus) {
+                    pageStatus.textContent = 'Multi-Page Content';
+                    pageStatus.style.color = '#FF6B35';
+                }
+            } else {
+                previewBox.classList.remove('multi-page');
+                previewBox.classList.add('single-page');
+                
+                if (pageStatus) {
+                    pageStatus.textContent = 'Single Page';
+                    pageStatus.style.color = '#4CAF50';
+                }
+            }
+        }
+
+        // Form submission logic
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const jobDescription = document.getElementById('job_description').value;
+            const resumeFile = document.getElementById('resume_file').files[0];
+
+            if (!jobDescription || !resumeFile) {
+                alert("Please provide both the Job Description and upload a Resume (PDF).");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('job_description', jobDescription);
+            formData.append('resume', resumeFile);
+
+            loadingOverlay.style.display = 'flex';
+            submitButton.disabled = true;
+            downloadResumeBtn.disabled = true;
+            
+            previewBox.innerHTML = "Processing and calling Gemini API...";
+
+            try {
+                const response = await fetch('/rewrite_resume', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    const resumeText = result.rewritten_resume;
+                    
+                    // Simple Markdown to HTML conversion
+                    let resumeHtml = resumeText
+                        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                        .replace(/^-\s/gm, '<ul><li>')
+                        .replace(/\n\s*-\s/g, '</li><li>')
+                        .replace(/(<\/li>)([^\n<]+)/g, (match, p1, p2) => p1 + '</ul>\n' + p2) 
+                        .replace(/(<\/li>)\n+([^\n<]+)/g, (match, p1, p2) => p1 + '</ul>\n' + p2) 
+                        .replace(/\n{2,}/g, '<br><br>')
+                        .replace(/\n/g, '<br>');
+
+                    previewBox.innerHTML = resumeHtml;
+
+                    // Check page length and apply styling after content is loaded
+                    setTimeout(() => {
+                        checkPageLength();
+                        applyBorderToResume(borderSelect.value);
+                    }, 100);
+
+                    downloadResumeBtn.disabled = false;
+                    try { launchSideCannons(); } catch(e) {}
+                } else {
+                    previewBox.innerHTML = `Error: ${result.error || 'An unknown error occurred.'}`;
+                    downloadResumeBtn.disabled = true;
+                }
+            } catch (error) {
+                previewBox.innerHTML = `Network Error: Could not connect to the server.`;
+                downloadResumeBtn.disabled = true;
+            } finally {
+                loadingOverlay.style.display = 'none';
+                submitButton.disabled = false;
+            }
+        });
+
+        // Download PDF Logic - Direct HTML to PDF conversion
+        downloadResumeBtn.addEventListener('click', async function() {
+            const previewBox = document.getElementById('preview-box');
+            
+            if (previewBox.innerHTML.trim() === "" || previewBox.innerHTML.includes("The generated resume will appear here.")) {
+                 alert("Please generate a valid resume before attempting to download.");
+                 return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            
+            // Get the HTML content and clean it up
+            let htmlContent = previewBox.innerHTML;
+            
+            // Clean up the HTML for better PDF rendering
+            htmlContent = htmlContent
+                .replace(/<br\s*\/?>/gi, '<br>')
+                .replace(/<div>/gi, '<p>')
+                .replace(/<\/div>/gi, '</p>')
+                .replace(/<p><\/p>/gi, '')
+                .replace(/<p>\s*<\/p>/gi, '');
+            
+            // Create a temporary container for PDF generation optimized for single page
+            const tempContainer = document.createElement('div');
+            tempContainer.style.cssText = `
+                width: 8.5in;
+                padding: 0.3in;
+                font-family: Arial, sans-serif;
+                font-size: 10pt;
+                line-height: 1.2;
+                color: #000;
+                background: #fff;
+                margin: 0;
+                box-sizing: border-box;
+            `;
+            tempContainer.innerHTML = htmlContent;
+            
+            // Temporarily add to DOM for rendering
+            document.body.appendChild(tempContainer);
+            
+            try {
+                // Method 1: Try html2canvas approach first
+                try {
+                    const canvas = await html2canvas(tempContainer, {
+                        scale: 2,
+                        backgroundColor: '#ffffff',
+                        useCORS: true,
+                        allowTaint: true,
+                        width: tempContainer.offsetWidth,
+                        height: tempContainer.offsetHeight,
+                        scrollX: 0,
+                        scrollY: 0
+                    });
+                    
+                    // Remove temporary container
+                    document.body.removeChild(tempContainer);
+                    
+                    // Calculate dimensions for single page
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+                    const margin = 15; // Minimal margins
+                    const contentWidth = pageWidth - (2 * margin);
+                    const contentHeight = pageHeight - (2 * margin);
+                    
+                    // Convert canvas to image
+                    const imgData = canvas.toDataURL('image/png', 1.0);
+                    
+                    // Calculate scaling to fit on one page
+                    const scaleX = contentWidth / canvas.width;
+                    const scaleY = contentHeight / canvas.height;
+                    const scale = Math.min(scaleX, scaleY); // Use the smaller scale to fit
+                    
+                    const imgWidth = canvas.width * scale;
+                    const imgHeight = canvas.height * scale;
+                    
+                    // Center the image on the page
+                    const xOffset = margin + (contentWidth - imgWidth) / 2;
+                    const yOffset = margin + (contentHeight - imgHeight) / 2;
+                    
+                    // Add image to PDF (single page only)
+                    doc.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight, undefined, 'FAST');
+                    
+                } catch (canvasError) {
+                    console.log('Canvas method failed, trying direct HTML method...');
+                    
+                    // Remove temporary container
+                    document.body.removeChild(tempContainer);
+                    
+                    // Method 2: Direct HTML to PDF using jsPDF's built-in HTML rendering
+                    const { jsPDF } = window.jspdf;
+                    const newDoc = new jsPDF('p', 'pt', 'a4');
+                    
+                    // Convert HTML to text for direct PDF generation
+                    const textContent = previewBox.innerText || previewBox.textContent;
+                    const lines = textContent.split('\n');
+                    
+                    const pageHeight = newDoc.internal.pageSize.getHeight();
+                    const pageWidth = newDoc.internal.pageSize.getWidth();
+                    const margin = 20; // Reduced margins for more space
+                    const maxWidth = pageWidth - (2 * margin);
+                    
+                    // Calculate optimal font size to fit on one page
+                    let fontSize = 12;
+                    let headerFontSize = 14;
+                    let lineSpacing = 1.2;
+                    let headerSpacing = 1.5;
+                    
+                    // Try to fit content on one page by reducing font size
+                    let fitsOnOnePage = false;
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    
+                    while (!fitsOnOnePage && attempts < maxAttempts) {
+                        newDoc.setFontSize(fontSize);
+                        let yPosition = margin;
+                        let needsNewPage = false;
+                        
+                        for (let i = 0; i < lines.length; i++) {
+                            const line = lines[i].trim();
+                            if (line) {
+                                // Check if we need a new page
+                                if (yPosition > pageHeight - margin) {
+                                    needsNewPage = true;
+                                    break;
+                                }
+                                
+                                // Handle bold text (headers)
+                                if (line.toUpperCase() === line && line.length > 0 && line.length < 50) {
+                                    newDoc.setFont(undefined, 'bold');
+                                    newDoc.setFontSize(headerFontSize);
+                                    const splitText = newDoc.splitTextToSize(line, maxWidth);
+                                    newDoc.text(splitText, margin, yPosition);
+                                    yPosition += splitText.length * (headerFontSize * headerSpacing);
+                                    newDoc.setFont(undefined, 'normal');
+                                    newDoc.setFontSize(fontSize);
+                                } else {
+                                    // Regular text
+                                    const splitText = newDoc.splitTextToSize(line, maxWidth);
+                                    newDoc.text(splitText, margin, yPosition);
+                                    yPosition += splitText.length * (fontSize * lineSpacing);
+                                }
+                            } else {
+                                yPosition += fontSize * 0.5; // Reduced space for empty lines
+                            }
+                        }
+                        
+                        if (!needsNewPage) {
+                            fitsOnOnePage = true;
+                        } else {
+                            // Reduce font sizes and spacing
+                            fontSize = Math.max(8, fontSize - 0.5);
+                            headerFontSize = Math.max(10, headerFontSize - 0.5);
+                            lineSpacing = Math.max(1.0, lineSpacing - 0.05);
+                            headerSpacing = Math.max(1.2, headerSpacing - 0.05);
+                            attempts++;
+                        }
+                    }
+                    
+                    // Now render with the calculated optimal sizes
+                    newDoc.setFontSize(fontSize);
+                    let yPosition = margin;
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line) {
+                            // Handle bold text (headers)
+                            if (line.toUpperCase() === line && line.length > 0 && line.length < 50) {
+                                newDoc.setFont(undefined, 'bold');
+                                newDoc.setFontSize(headerFontSize);
+                                const splitText = newDoc.splitTextToSize(line, maxWidth);
+                                newDoc.text(splitText, margin, yPosition);
+                                yPosition += splitText.length * (headerFontSize * headerSpacing);
+                                newDoc.setFont(undefined, 'normal');
+                                newDoc.setFontSize(fontSize);
+                            } else {
+                                // Regular text
+                                const splitText = newDoc.splitTextToSize(line, maxWidth);
+                                newDoc.text(splitText, margin, yPosition);
+                                yPosition += splitText.length * (fontSize * lineSpacing);
+                            }
+                        } else {
+                            yPosition += fontSize * 0.5; // Reduced space for empty lines
+                        }
+                    }
+                    
+                    // Replace the original doc with the new one
+                    doc = newDoc;
+                }
+                
+                // Generate filename
+            const titleInput = document.getElementById('job_description');
+                let jobDescTitle = 'Resume';
+                if (titleInput && titleInput.value.trim()) {
+                    // Extract meaningful title from job description
+                    const firstLine = titleInput.value.split('\n')[0].trim();
+                    jobDescTitle = firstLine.substring(0, 50).replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+                }
+                
+            doc.save(`Perfected_Resume_${jobDescTitle}.pdf`);
+                
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                if (document.body.contains(tempContainer)) {
+                    document.body.removeChild(tempContainer);
+                }
+                alert('Error generating PDF. Please try again.');
+            }
+        });
+
+        // Chatbot logic for Resume page
+        (function(){
+            const launcher = document.getElementById('resume-chat-launcher');
+            const panel = document.getElementById('resume-chat-panel');
+            const closeBtn = document.getElementById('resume-chat-close');
+            const body = document.getElementById('resume-chat-body');
+            const input = document.getElementById('resume-chat-input');
+            const send = document.getElementById('resume-chat-send');
+            const box = document.getElementById('preview-box');
+
+            function appendMsg(text, who){
+                const div = document.createElement('div');
+                div.className = `chat-msg ${who}`;
+                div.textContent = text;
+                body.appendChild(div);
+                body.scrollTop = body.scrollHeight;
+            }
+            function escapeRegExp(string) {
+                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            }
+            function wrapFirstOccurrence(html, text, wrapper){
+                const pattern = new RegExp(escapeRegExp(text));
+                return html.replace(pattern, wrapper);
+            }
+            function addSkill(skill){
+                const headings = Array.from(box.querySelectorAll('h1,h2,h3,strong,b'));
+                let skillsAnchor = headings.find(h=>/technical\s*skills|skills/i.test(h.textContent));
+                if (!skillsAnchor){
+                    box.insertAdjacentHTML('beforeend', '<h3>TECHNICAL SKILLS</h3>');
+                    skillsAnchor = box.querySelector('h3:last-of-type');
+                }
+                skillsAnchor.insertAdjacentHTML('afterend', `<div>• ${skill}</div>`);
+            }
+            function addProject(title, desc){
+                const headings = Array.from(box.querySelectorAll('h1,h2,h3,strong,b'));
+                let projAnchor = headings.find(h=>/project/i.test(h.textContent));
+                if (!projAnchor){
+                    box.insertAdjacentHTML('beforeend', '<h3>PROJECTS</h3>');
+                    projAnchor = box.querySelector('h3:last-of-type');
+                }
+                projAnchor.insertAdjacentHTML('afterend', `<p><strong>${title}</strong>: ${desc}</p>`);
+            }
+            function removeProject(title){
+                const paras = Array.from(box.querySelectorAll('p'));
+                const target = paras.find(p=>p.textContent.toLowerCase().includes(title.toLowerCase()));
+                if (target) target.remove();
+            }
+            function highlightText(text){
+                const html = box.innerHTML;
+                const wrapped = wrapFirstOccurrence(html, text, `<span style="background:yellow">${text}</span>`);
+                if (wrapped !== html) box.innerHTML = wrapped;
+            }
+            function underlineText(text){
+                const html = box.innerHTML;
+                const wrapped = wrapFirstOccurrence(html, text, `<span style="text-decoration:underline">${text}</span>`);
+                if (wrapped !== html) box.innerHTML = wrapped;
+            }
+            function handle(cmd){
+                const raw = cmd.trim();
+                if (!raw) return;
+                appendMsg(raw, 'user');
+                let msg = 'Done.';
+                let m;
+                if ((m = raw.match(/^add\s+skill:\s*(.+)$/i))) {
+                    addSkill(m[1]);
+                } else if ((m = raw.match(/^add\s+project:\s*([^\-]+)\s*-\s*(.+)$/i))) {
+                    addProject(m[1].trim(), m[2].trim());
+                } else if ((m = raw.match(/^remove\s+project:\s*(.+)$/i))) {
+                    removeProject(m[1].trim());
+                } else if ((m = raw.match(/^highlight\s+"(.+)"$/i)) || (m = raw.match(/^highlight\s+(.+)$/i))) {
+                    highlightText(m[1]);
+                } else if ((m = raw.match(/^underline\s+"(.+)"$/i)) || (m = raw.match(/^underline\s+(.+)$/i))) {
+                    underlineText(m[1]);
+                } else {
+                    msg = 'Commands: add skill: X | add project: Title - desc | remove project: Title | highlight "text" | underline "text"';
+                }
+                appendMsg(msg, 'bot');
+                checkPageLength();
+            }
+            launcher.addEventListener('click', ()=>{ panel.style.display = panel.style.display==='flex'?'none':'flex'; panel.style.display='flex'; input.focus(); });
+            closeBtn.addEventListener('click', ()=> panel.style.display='none');
+            send.addEventListener('click', ()=>{ handle(input.value); input.value=''; });
+            input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ handle(input.value); input.value=''; }});
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match My Resume</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script> 
+    
+    <style>
+        /* --- General Layout and Structure --- */
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f9; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        h1 { color: #1a73e8; text-align: center; margin-bottom: 30px; }
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        textarea, input[type="file"] { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 200px; resize: vertical; }
+
+        /* --- Button Styles --- */
+        #submit-button { margin-bottom: 20px; }
+        #get-ats-score-button { background-color: #fbbc05; color: #333; }
+        #get-ats-score-button:hover:not(:disabled) { background-color: #e5a400; }
+        button { padding: 12px 20px; background-color: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover:not(:disabled) { background-color: #155bb5; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .output-controls { text-align: right; margin-bottom: 10px; display: flex; justify-content: flex-end; gap: 10px;}
+
+        /* --- Preview Box and Styling (Content Editable) --- */
+        #preview-box { 
+            font-family: Arial, sans-serif;
+            font-size: 10.5pt; 
+            line-height: 1.4; 
+            border: 1px solid #ddd; 
+            padding: 20px; 
+            min-height: 400px; 
+            background-color: #fafafa; 
+            margin-top: 10px; 
+            outline: none; 
+            white-space: pre-wrap;
+            width: 8.5in;
+            margin-left: auto;
+            margin-right: auto;
+            box-sizing: border-box;
+            page-break-inside: avoid;
+        }
+        /* Style adjustments for a clean resume look */
+        #preview-box h1, #preview-box h2, #preview-box h3, #preview-box strong, #preview-box b {
+            font-size: 12pt !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+        }
+        
+        /* Page break styling for multi-page resumes */
+        .page-break {
+            page-break-before: always;
+            border-top: 2px solid #333;
+            margin-top: 20px;
+            padding-top: 20px;
+        }
+        
+        /* Single page optimization */
+        .single-page {
+            max-height: 11in;
+            overflow: hidden;
+        }
+        
+        /* Multi-page styling */
+        .multi-page {
+            min-height: 11in;
+        }
+
+        /* --- Cover Letter Preview Box Styling --- */
+        #cover-letter-preview-box { 
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt; 
+            line-height: 1.6; 
+            border: 1px solid #ddd; 
+            padding: 40px; 
+            min-height: 500px; 
+            background-color: #fff; 
+            margin-top: 10px; 
+            outline: none; 
+            white-space: pre-wrap;
+            max-width: 8.5in;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        /* Style adjustments for cover letter formatting */
+        #cover-letter-preview-box h1, #cover-letter-preview-box h2, #cover-letter-preview-box h3, 
+        #cover-letter-preview-box strong, #cover-letter-preview-box b {
+            font-weight: 700 !important;
+        }
+
+        /* --- ATS Feedback Styles --- */
+        #ats-score-display { font-weight: bold; font-size: 1.5em; }
+        #ats-feedback-box { border: 1px dashed #ccc; padding: 15px; background: #f0f0f0; margin-bottom: 20px; white-space: pre-wrap;}
+
+        /* --- Rich Text Toolbar Styles --- */
+        .toolbar-group { position: relative; display: inline-block; margin-right: 5px; }
+        #text-toolbar button, #text-toolbar select {
+            padding: 5px 10px;
+            margin: 2px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .color-picker-dropdown {
+            position: absolute;
+            top: 100%; 
+            left: 0;
+            z-index: 10;
+            margin-top: 5px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            padding: 8px;
+            display: none; 
+        }
+        .color-swatch-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 5px;
+        }
+        .color-swatch {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.1s;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+
+        /* --- Loading Spinner (Gemini-themed) --- */
+        .loading-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(255, 255, 255, 0.9); 
+            z-index: 1000; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 1.2em; 
+            color: #1a73e8; 
+            flex-direction: column;
+        }
+        .gemini-spinner {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            position: relative;
+            background: conic-gradient(#4285F4, #34A853, #FBBC05, #EA4335, #4285F4); 
+            animation: rotate 2s linear infinite;
+        }
+        .inner-circle {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 88%; 
+            height: 88%;
+            border-radius: 50%;
+            background-color: #f4f7f9; 
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+        @keyframes rotate {
+            to { transform: rotate(360deg); }
+        }
+
+        /* --- Chat widget Styles --- */
+        .chat-toggle { position: fixed; right: 20px; bottom: 20px; background: #1a73e8; color: #fff; border-radius: 50%; width: 56px; height: 56px; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.15); font-size: 22px; }
+        .chat-panel { position: fixed; right: 20px; bottom: 90px; width: 340px; max-height: 60vh; background: #fff; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.2); display: none; flex-direction: column; overflow: hidden; }
+        .chat-header { padding: 10px 12px; background: #1a73e8; color: #fff; font-weight: bold; display: flex; align-items: center; justify-content: space-between; }
+        .chat-messages { padding: 12px; overflow-y: auto; flex: 1; background: #f9fbfd; }
+        .chat-input-row { display: flex; gap: 6px; border-top: 1px solid #eee; padding: 8px; background: #fff; }
+        .chat-input-row input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+        .chat-input-row button { padding: 10px 14px; }
+        .msg { margin: 8px 0; max-width: 85%; padding: 8px 10px; border-radius: 8px; white-space: pre-wrap; }
+        .msg.user { background: #e8f0fe; margin-left: auto; }
+        .msg.bot { background: #eef7ee; margin-right: auto; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Match My Resume</h1>
+    
+    <form id="rewrite-form">
+        <div class="grid-layout">
+            <div>
+                <h2>1. Job Description</h2>
+                <textarea id="job_description" name="job_description" placeholder="Paste the full job description here (e.g., Senior Software Engineer at Google)..." required></textarea>
+            </div>
+            <div>
+                <h2>2. Upload Resume (PDF)</h2>
+                <input type="file" id="resume_file" name="resume_file" accept=".pdf" required>
+            </div>
+        </div>
+        
+        <button type="submit" id="submit-button">3. Generate Perfected Resume</button>
+    </form>
+    
+    <hr style="margin: 40px 0;">
+
+    <div class="output-area">
+        
+        <h2 style="margin-top: 10px;">General ATS Score: <span id="ats-score-display" style="color: #666;">--</span></h2>
+        <div id="ats-feedback-box">
+            General ATS compatibility feedback will appear here after scoring.
+        </div>
+        
+        <h2 style="margin-top: 20px;">Skill Gap Analysis: <span id="skill-gap-status" style="color: #666;">--</span></h2>
+        <div id="skill-gap-display" style="display: none;">
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #4CAF50; margin-bottom: 10px;">✅ Matching Skills</h3>
+                <div id="matching-skills-box" style="border: 1px solid #4CAF50; padding: 15px; background: #f8fff8; margin-bottom: 15px; border-radius: 4px;">
+                    Skills matching between your resume and job description will appear here.
+                </div>
+            </div>
+            <div>
+                <h3 style="color: #FF6B35; margin-bottom: 10px;">📈 Improvements</h3>
+                <div id="improvements-box" style="border: 1px solid #FF6B35; padding: 15px; background: #fff8f5; border-radius: 4px;">
+                    Missing skills and areas for improvement will appear here.
+                </div>
+            </div>
+        </div>
+        
+        <div class="output-controls">
+            <button id="get-ats-score-button" disabled>Check General ATS Score</button>
+            <button id="skill-gap-button" disabled>Analyze Skill Gap</button>
+            <button id="generate-cover-letter-button" disabled>Generate Cover Letter</button>
+            <button id="download-pdf-button" disabled>Download Resume PDF</button>
+        </div>
+        
+        <h2>4. Editable Preview of Rewritten Resume</h2>
+        <div id="page-indicator" style="text-align: center; margin-bottom: 10px; font-weight: bold; color: #666;">
+            <span id="page-status">Single Page</span>
+        </div>
+        
+        <div id="text-toolbar" style="border: 1px solid #ccc; background: #eee; padding: 5px; margin-bottom: 5px; display: flex; align-items: center;">
+            <button title="Bold" onclick="execCmd('bold')"><i class="fas fa-bold"></i></button>
+            <button title="Italic" onclick="execCmd('italic')"><i class="fas fa-italic"></i></button>
+            <button title="Underline" onclick="execCmd('underline')"><i class="fas fa-underline"></i></button>
+            <button title="Strikethrough" onclick="execCmd('strikethrough')"><i class="fas fa-strikethrough"></i></button>
+            
+            <div class="toolbar-group">
+                <button title="Font Color" id="font-color-toggle" onclick="toggleColorPicker()"><i class="fas fa-fill-drip"></i></button>
+                <div id="color-picker-dropdown" class="color-picker-dropdown">
+                    <div class="color-swatch-grid">
+                        <button class="color-swatch" style="background-color: #000;" data-color="#000" onclick="applyColor('#000')"></button>
+                        <button class="color-swatch" style="background-color: #333;" data-color="#333" onclick="applyColor('#333')"></button>
+                        <button class="color-swatch" style="background-color: #4285F4;" data-color="#4285F4" onclick="applyColor('#4285F4')"></button>
+                        <button class="color-swatch" style="background-color: #34A853;" data-color="#34A853" onclick="applyColor('#34A853')"></button>
+                        <button class="color-swatch" style="background-color: #EA4335;" data-color="#EA4335" onclick="applyColor('#EA4335')"></button>
+                        <button class="color-swatch" style="background-color: #FBBC05;" data-color="#FBBC05" onclick="applyColor('#FBBC05')"></button>
+                        <button class="color-swatch" style="background-color: #8A2BE2;" data-color="#8A2BE2" onclick="applyColor('#8A2BE2')"></button>
+                        <button class="color-swatch" style="background-color: #FFFFFF; border: 1px solid #000;" data-color="#FFFFFF" onclick="applyColor('#FFFFFF')"></button>
+                    </div>
+                </div>
+            </div>
+            <select onchange="execCmd('fontSize', this.value); this.value=''" title="Font Size" style="margin-left: 10px;">
+                <option value="" disabled selected>Size</option>
+                <option value="3">Small</option>
+                <option value="5">Medium</option>
+                <option value="7">Large</option>
+            </select>
+            
+            <select onchange="execCmd(this.value); this.value=''" title="Alignment">
+                <option value="" disabled selected>Align</option>
+                <option value="justifyLeft">Left</option>
+                <option value="justifyCenter">Center</option>
+                <option value="justifyRight">Right</option>
+                <option value="justifyFull">Justify</option>
+            </select>
+            
+            <select id="border-select" title="Page Border">
+                <option value="none">No Border</option>
+                <option value="solid-thin">Solid Thin</option>
+                <option value="dashed-thick">Dashed Thick</option>
+                <option value="double">Double Line</option>
+            </select>
+        </div>
+        
+        <div id="preview-box" contenteditable="true">
+            The generated resume will appear here.
+        </div>
+    </div>
+    
+    <hr style="margin: 40px 0;">
+    
+    <div class="cover-letter-area" id="cover-letter-area" style="display: none;">
+        <h2>5. Cover Letter</h2>
+        
+        <div class="cover-letter-controls" style="margin-bottom: 20px;">
+            <select id="cover-letter-template" title="Cover Letter Template">
+                <option value="professional">Professional</option>
+                <option value="modern">Modern</option>
+                <option value="creative">Creative</option>
+                <option value="executive">Executive</option>
+            </select>
+            <button id="download-cover-letter-button" disabled>Download Cover Letter PDF</button>
+        </div>
+        
+        <div id="cover-letter-toolbar" style="border: 1px solid #ccc; background: #eee; padding: 5px; margin-bottom: 5px; display: flex; align-items: center;">
+            <button title="Bold" onclick="execCmdCoverLetter('bold')"><i class="fas fa-bold"></i></button>
+            <button title="Italic" onclick="execCmdCoverLetter('italic')"><i class="fas fa-italic"></i></button>
+            <button title="Underline" onclick="execCmdCoverLetter('underline')"><i class="fas fa-underline"></i></button>
+            <button title="Strikethrough" onclick="execCmdCoverLetter('strikethrough')"><i class="fas fa-strikethrough"></i></button>
+            
+            <div class="toolbar-group">
+                <button title="Font Color" id="cover-letter-font-color-toggle" onclick="toggleCoverLetterColorPicker()"><i class="fas fa-fill-drip"></i></button>
+                <div id="cover-letter-color-picker-dropdown" class="color-picker-dropdown">
+                    <div class="color-swatch-grid">
+                        <button class="color-swatch" style="background-color: #000;" data-color="#000" onclick="applyCoverLetterColor('#000')"></button>
+                        <button class="color-swatch" style="background-color: #333;" data-color="#333" onclick="applyCoverLetterColor('#333')"></button>
+                        <button class="color-swatch" style="background-color: #4285F4;" data-color="#4285F4" onclick="applyCoverLetterColor('#4285F4')"></button>
+                        <button class="color-swatch" style="background-color: #34A853;" data-color="#34A853" onclick="applyCoverLetterColor('#34A853')"></button>
+                        <button class="color-swatch" style="background-color: #EA4335;" data-color="#EA4335" onclick="applyCoverLetterColor('#EA4335')"></button>
+                        <button class="color-swatch" style="background-color: #FBBC05;" data-color="#FBBC05" onclick="applyCoverLetterColor('#FBBC05')"></button>
+                        <button class="color-swatch" style="background-color: #8A2BE2;" data-color="#8A2BE2" onclick="applyCoverLetterColor('#8A2BE2')"></button>
+                        <button class="color-swatch" style="background-color: #FFFFFF; border: 1px solid #000;" data-color="#FFFFFF" onclick="applyCoverLetterColor('#FFFFFF')"></button>
+                    </div>
+                </div>
+            </div>
+            <select onchange="execCmdCoverLetter('fontSize', this.value); this.value=''" title="Font Size" style="margin-left: 10px;">
+                <option value="" disabled selected>Size</option>
+                <option value="3">Small</option>
+                <option value="5">Medium</option>
+                <option value="7">Large</option>
+            </select>
+            
+            <select onchange="execCmdCoverLetter(this.value); this.value=''" title="Alignment">
+                <option value="" disabled selected>Align</option>
+                <option value="justifyLeft">Left</option>
+                <option value="justifyCenter">Center</option>
+                <option value="justifyRight">Right</option>
+                <option value="justifyFull">Justify</option>
+            </select>
+            
+            <select id="cover-letter-border-select" title="Page Border">
+                <option value="none">No Border</option>
+                <option value="solid-thin">Solid Thin</option>
+                <option value="dashed-thick">Dashed Thick</option>
+                <option value="double">Double Line</option>
+            </select>
+        </div>
+        
+        <div id="cover-letter-preview-box" contenteditable="true">
+            The generated cover letter will appear here.
+        </div>
+    </div>
+</div>
+
+<div class="loading-overlay" id="loading-overlay">
+    <div class="gemini-spinner">
+        <div class="inner-circle"></div>
+    </div>
+    <p style="margin-top: 20px;">**Match My Resume is optimizing your resume...**</p>
+</div>
+
+<button class="chat-toggle" id="chat-toggle" title="Chat">💬</button>
+<div class="chat-panel" id="chat-panel">
+    <div class="chat-header">
+        <span>Resume Copilot</span>
+        <button id="chat-close" style="background: transparent; color: #fff; border: none; font-size: 18px; cursor: pointer;">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-row">
+        <input id="chat-input" type="text" placeholder="Ask to add skills, rephrase, tailor..." />
+        <button id="chat-send">Send</button>
+    </div>
+ </div>
+
+<script>
+    const form = document.getElementById('rewrite-form');
+    const previewBox = document.getElementById('preview-box');
+    const submitButton = document.getElementById('submit-button');
+    const downloadButton = document.getElementById('download-pdf-button');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    
+    // Store original resume text for ATS scoring
+    let originalResumeText = '';
+
+    // Element references for ATS, Border, and Color Picker
+    const atsScoreButton = document.getElementById('get-ats-score-button');
+    const atsScoreDisplay = document.getElementById('ats-score-display');
+    const atsFeedbackBox = document.getElementById('ats-feedback-box');
+    const borderSelect = document.getElementById('border-select');
+    const colorPickerDropdown = document.getElementById('color-picker-dropdown'); 
+    
+    // Cover letter elements
+    const generateCoverLetterButton = document.getElementById('generate-cover-letter-button');
+    const coverLetterArea = document.getElementById('cover-letter-area');
+    const coverLetterPreviewBox = document.getElementById('cover-letter-preview-box');
+    const coverLetterTemplate = document.getElementById('cover-letter-template');
+    const downloadCoverLetterButton = document.getElementById('download-cover-letter-button');
+    const coverLetterBorderSelect = document.getElementById('cover-letter-border-select');
+    const coverLetterColorPickerDropdown = document.getElementById('cover-letter-color-picker-dropdown');
+    
+    // Skill gap elements
+    const skillGapButton = document.getElementById('skill-gap-button');
+    const skillGapStatus = document.getElementById('skill-gap-status');
+    const skillGapDisplay = document.getElementById('skill-gap-display');
+    const matchingSkillsBox = document.getElementById('matching-skills-box');
+    const improvementsBox = document.getElementById('improvements-box'); 
+    
+    // Chat elements
+    const chatToggle = document.getElementById('chat-toggle');
+    const chatPanel = document.getElementById('chat-panel');
+    const chatClose = document.getElementById('chat-close');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+    
+    // Set up resize observer to monitor content changes
+    const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            if (entry.target === previewBox) {
+                setTimeout(() => {
+                    checkPageLength();
+                }, 50);
+            }
+        }
+    });
+    
+    // Start observing the preview box
+    if (previewBox) {
+        resizeObserver.observe(previewBox);
+    }
+
+    // --- Utility Functions ---
+
+    // Function to reset the ATS display
+    function resetAtsDisplay() {
+        atsScoreDisplay.textContent = '--';
+        atsScoreDisplay.style.color = '#666';
+        atsFeedbackBox.textContent = 'General ATS compatibility feedback will appear here after scoring.';
+    }
+    
+    // Function to reset the skill gap display
+    function resetSkillGapDisplay() {
+        skillGapStatus.textContent = '--';
+        skillGapStatus.style.color = '#666';
+        skillGapDisplay.style.display = 'none';
+        matchingSkillsBox.textContent = 'Skills matching between your resume and job description will appear here.';
+        improvementsBox.textContent = 'Missing skills and areas for improvement will appear here.';
+    }
+    
+    // Function for rich text commands
+    function execCmd(command, value = null) {
+        document.execCommand(command, false, value);
+        previewBox.focus(); // Keep focus on the editable area after command
+    }
+
+    // Function for cover letter rich text commands
+    function execCmdCoverLetter(command, value = null) {
+        document.execCommand(command, false, value);
+        coverLetterPreviewBox.focus(); // Keep focus on the cover letter area after command
+    }
+
+    // Color Picker Logic
+    function toggleColorPicker() {
+        colorPickerDropdown.style.display = colorPickerDropdown.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function applyColor(hexColor) {
+        execCmd('foreColor', hexColor);
+        toggleColorPicker();
+    }
+
+    // Cover Letter Color Picker Logic
+    function toggleCoverLetterColorPicker() {
+        coverLetterColorPickerDropdown.style.display = coverLetterColorPickerDropdown.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function applyCoverLetterColor(hexColor) {
+        execCmdCoverLetter('foreColor', hexColor);
+        toggleCoverLetterColorPicker();
+    }
+    
+    // Hide color picker if user clicks outside
+    document.addEventListener('click', function(event) {
+        const fontColorToggle = document.getElementById('font-color-toggle');
+        const coverLetterFontColorToggle = document.getElementById('cover-letter-font-color-toggle');
+        const isClickInsideResume = fontColorToggle.contains(event.target) || colorPickerDropdown.contains(event.target);
+        const isClickInsideCoverLetter = coverLetterFontColorToggle.contains(event.target) || coverLetterColorPickerDropdown.contains(event.target);
+        
+        if (!isClickInsideResume) {
+            colorPickerDropdown.style.display = 'none';
+        }
+        if (!isClickInsideCoverLetter) {
+            coverLetterColorPickerDropdown.style.display = 'none';
+        }
+    });
+
+    // Border Logic
+    borderSelect.addEventListener('change', function() {
+        applyBorderToResume(this.value);
+    });
+    
+    function applyBorderToResume(borderType) {
+        // Remove existing border classes
+        previewBox.classList.remove('single-page', 'multi-page');
+        
+        // Clear any previous complex borders
+        previewBox.style.border = '1px solid #ddd'; // Reset default border
+        previewBox.style.borderStyle = 'solid';
+        previewBox.style.borderWidth = '1px';
+        previewBox.style.borderColor = '#ddd';
+
+        switch (borderType) {
+            case 'none':
+                previewBox.style.border = 'none';
+                break;
+            case 'solid-thin':
+                previewBox.style.border = '1px solid #333';
+                previewBox.style.borderColor = '#333';
+                break;
+            case 'dashed-thick':
+                previewBox.style.border = '3px dashed #666';
+                previewBox.style.borderColor = '#666';
+                break;
+            case 'double':
+                previewBox.style.border = '6px double #333';
+                previewBox.style.borderColor = '#333';
+                break;
+        }
+        
+        // Check if content exceeds single page and apply appropriate styling
+        checkPageLength();
+    }
+    
+    function checkPageLength() {
+        // Temporarily remove height restrictions to get true content height
+        const originalMaxHeight = previewBox.style.maxHeight;
+        previewBox.style.maxHeight = 'none';
+        
+        const contentHeight = previewBox.scrollHeight;
+        const containerHeight = previewBox.clientHeight;
+        
+        // A4 page dimensions: 8.5" x 11" with margins
+        // Assuming 96 DPI, 11 inches = 1056 pixels
+        // Account for padding and margins (20px top + 20px bottom = 40px)
+        const maxSinglePageHeight = (11 * 96) - 40; // 1016 pixels
+        
+        // Restore original max height
+        previewBox.style.maxHeight = originalMaxHeight;
+        
+        // Update page indicator
+        const pageStatus = document.getElementById('page-status');
+        
+        if (contentHeight > maxSinglePageHeight) {
+            // Multi-page content
+            previewBox.classList.remove('single-page');
+            previewBox.classList.add('multi-page');
+            
+            // Ensure 4-sided border is applied for multi-page
+            const currentBorder = previewBox.style.border;
+            if (currentBorder && currentBorder !== 'none') {
+                previewBox.style.border = currentBorder;
+            }
+            
+            if (pageStatus) {
+                pageStatus.textContent = 'Multi-Page Content';
+                pageStatus.style.color = '#FF6B35';
+            }
+            
+            console.log('Multi-page content detected. Height:', contentHeight, 'Max single page:', maxSinglePageHeight);
+        } else {
+            // Single page content
+            previewBox.classList.remove('multi-page');
+            previewBox.classList.add('single-page');
+            
+            if (pageStatus) {
+                pageStatus.textContent = 'Single Page';
+                pageStatus.style.color = '#4CAF50';
+            }
+            
+            console.log('Single-page content detected. Height:', contentHeight, 'Max single page:', maxSinglePageHeight);
+        }
+    }
+
+    // Cover Letter Border Logic
+    coverLetterBorderSelect.addEventListener('change', function() {
+        // Clear any previous complex borders
+        coverLetterPreviewBox.style.border = '1px solid #ddd'; // Reset default border
+        coverLetterPreviewBox.style.borderStyle = 'solid';
+        coverLetterPreviewBox.style.borderWidth = '1px';
+
+        switch (this.value) {
+            case 'none':
+                coverLetterPreviewBox.style.border = 'none';
+                break;
+            case 'solid-thin':
+                coverLetterPreviewBox.style.border = '1px solid #333';
+                break;
+            case 'dashed-thick':
+                coverLetterPreviewBox.style.border = '3px dashed #666';
+                break;
+            case 'double':
+                coverLetterPreviewBox.style.border = '6px double #333';
+                break;
+        }
+    });
+
+
+    // --- Core Logic: Form Submission (Generate Resume) ---
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const jobDescription = document.getElementById('job_description').value;
+        const resumeFile = document.getElementById('resume_file').files[0];
+
+        if (!jobDescription || !resumeFile) {
+            alert("Please provide both the Job Description and upload a Resume (PDF).");
+            return;
+        }
+
+        resetAtsDisplay();
+        
+        const formData = new FormData();
+        formData.append('job_description', jobDescription);
+        formData.append('resume', resumeFile);
+
+        loadingOverlay.style.display = 'flex';
+        submitButton.disabled = true;
+        downloadButton.disabled = true;
+        atsScoreButton.disabled = true; 
+        
+        // Use innerHTML for HTML response
+        previewBox.innerHTML = "Processing and calling Gemini API..."; 
+
+        try {
+            const response = await fetch('/rewrite_resume', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                const resumeText = result.rewritten_resume;
+                
+                // Store the original resume text for ATS scoring
+                originalResumeText = result.original_resume || '';
+                
+                // Simple Markdown to HTML conversion for bullet points and bolding
+                let resumeHtml = resumeText
+                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // Basic bolding
+                    .replace(/^-\s/gm, '<ul><li>') // Convert Markdown list to HTML
+                    .replace(/\n\s*-\s/g, '</li><li>') // Convert subsequent list items
+                    // Closing ul if a non-list item follows or at the end of text
+                    .replace(/(<\/li>)([^\n<]+)/g, (match, p1, p2) => p1 + '</ul>\n' + p2) 
+                    .replace(/(<\/li>)\n+([^\n<]+)/g, (match, p1, p2) => p1 + '</ul>\n' + p2) 
+                    .replace(/\n{2,}/g, '<br><br>') // Convert multiple newlines to <br><br>
+                    .replace(/\n/g, '<br>'); // Convert single newlines to <br>
+
+                // Note: The conversion above is a simplification. A real application would use a Markdown library.
+                previewBox.innerHTML = resumeHtml; 
+
+                // Check page length and apply appropriate styling after content is loaded
+                setTimeout(() => {
+                    checkPageLength();
+                    applyBorderToResume(borderSelect.value);
+                }, 100);
+
+                downloadButton.disabled = false;
+                atsScoreButton.disabled = false;
+                skillGapButton.disabled = false;
+                generateCoverLetterButton.disabled = false;
+            } else {
+                previewBox.innerHTML = `Error: ${result.error || 'An unknown error occurred.'}`;
+                downloadButton.disabled = true;
+                atsScoreButton.disabled = true;
+                skillGapButton.disabled = true;
+                generateCoverLetterButton.disabled = true;
+            }
+        } catch (error) {
+            previewBox.innerHTML = `Network Error: Could not connect to the server.`;
+            downloadButton.disabled = true;
+            atsScoreButton.disabled = true;
+            skillGapButton.disabled = true;
+            generateCoverLetterButton.disabled = true;
+        } finally {
+            loadingOverlay.style.display = 'none';
+            submitButton.disabled = false;
+        }
+    });
+
+    // --- Skill Gap Analysis Logic ---
+    skillGapButton.addEventListener('click', async function() {
+        const jobDescription = document.getElementById('job_description').value;
+        const originalResume = originalResumeText;
+
+        if (!originalResume || originalResume.trim() === '' || !jobDescription || jobDescription.trim() === '') {
+            alert("Please generate a valid resume and provide a job description before analyzing skill gaps.");
+            return;
+        }
+
+        skillGapButton.disabled = true;
+        skillGapStatus.textContent = 'Analyzing...';
+        skillGapStatus.style.color = '#FFA500';
+        skillGapDisplay.style.display = 'block';
+        matchingSkillsBox.textContent = 'Analyzing skills and comparing with job requirements...';
+        improvementsBox.textContent = 'Identifying missing skills and areas for improvement...';
+
+        const payload = {
+            job_description: jobDescription,
+            resume_text: originalResume
+        };
+
+        try {
+            const response = await fetch('/analyze_skill_gap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.matching_skills && result.improvements) {
+                skillGapStatus.textContent = 'Analysis Complete';
+                skillGapStatus.style.color = '#4CAF50';
+                
+                // Display matching skills
+                matchingSkillsBox.innerHTML = result.matching_skills;
+                
+                // Display improvements
+                improvementsBox.innerHTML = result.improvements;
+            } else {
+                skillGapStatus.textContent = 'Analysis Failed';
+                skillGapStatus.style.color = '#FF0000';
+                matchingSkillsBox.textContent = `Error: ${result.error || 'Could not analyze skill gaps.'}`;
+                improvementsBox.textContent = 'Analysis could not be completed.';
+            }
+
+        } catch (error) {
+            skillGapStatus.textContent = 'Network Error';
+            skillGapStatus.style.color = '#FF0000';
+            matchingSkillsBox.textContent = 'Network Error: Could not reach skill gap analysis server.';
+            improvementsBox.textContent = 'Analysis could not be completed due to network issues.';
+        } finally {
+            skillGapButton.disabled = false;
+        }
+    });
+
+    // --- Cover Letter Generation Logic ---
+    generateCoverLetterButton.addEventListener('click', async function() {
+        const jobDescription = document.getElementById('job_description').value;
+        const rewrittenResume = previewBox.textContent.trim(); 
+
+        if (!rewrittenResume || rewrittenResume === "The generated resume will appear here." || rewrittenResume.includes("Error")) {
+            alert("Please generate a valid, rewritten resume first before creating a cover letter.");
+            return;
+        }
+
+        generateCoverLetterButton.disabled = true;
+        coverLetterPreviewBox.innerHTML = "Generating cover letter...";
+
+        const payload = {
+            job_description: jobDescription,
+            resume_text: rewrittenResume,
+            template_style: coverLetterTemplate.value
+        };
+
+        try {
+            const response = await fetch('/generate_cover_letter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.cover_letter) {
+                // Simple text formatting for cover letter
+                let coverLetterHtml = result.cover_letter
+                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // Basic bolding
+                    .replace(/\n{2,}/g, '<br><br>') // Convert multiple newlines to <br><br>
+                    .replace(/\n/g, '<br>'); // Convert single newlines to <br>
+
+                coverLetterPreviewBox.innerHTML = coverLetterHtml;
+                downloadCoverLetterButton.disabled = false;
+                coverLetterArea.style.display = 'block';
+                
+                // Scroll to cover letter section
+                coverLetterArea.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                coverLetterPreviewBox.innerHTML = `Error: ${result.error || 'Could not generate cover letter.'}`;
+                downloadCoverLetterButton.disabled = true;
+            }
+
+        } catch (error) {
+            coverLetterPreviewBox.innerHTML = `Network Error: Could not reach cover letter generation server.`;
+            downloadCoverLetterButton.disabled = true;
+        } finally {
+            generateCoverLetterButton.disabled = false;
+        }
+    });
+
+    // --- ATS Score Logic ---
+    atsScoreButton.addEventListener('click', async function() {
+        if (!originalResumeText || originalResumeText.trim() === '') {
+            alert("Please generate a valid, rewritten resume first before checking the ATS score.");
+            return;
+        }
+
+        atsScoreButton.disabled = true;
+        atsScoreDisplay.textContent = 'Calculating...';
+        atsScoreDisplay.style.color = '#FFA500'; 
+        atsFeedbackBox.textContent = 'Analyzing original resume for general ATS compatibility...';
+
+        const payload = {
+            original_resume: originalResumeText
+        };
+
+        try {
+            const response = await fetch('/get_ats_score', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.ats_score !== undefined) {
+                const score = result.ats_score;
+                atsScoreDisplay.textContent = `${score}%`;
+                // Color code the score
+                if (score >= 75) {
+                    atsScoreDisplay.style.color = '#4CAF50';
+                } else if (score >= 50) {
+                    atsScoreDisplay.style.color = '#FFD700';
+                } else {
+                    atsScoreDisplay.style.color = '#FF0000';
+                }
+                
+                atsFeedbackBox.innerHTML = `
+                    <p><strong>Overall Assessment:</strong> ${result.overall_assessment}</p>
+                    <p><strong>Strengths:</strong> ${result.strengths}</p>
+                    <p><strong>Areas for Improvement:</strong> ${result.improvements}</p>
+                `;
+            } else {
+                atsScoreDisplay.textContent = 'Failed';
+                atsScoreDisplay.style.color = '#FF0000';
+                atsFeedbackBox.textContent = `Error: ${result.error || 'Could not calculate score.'}`;
+            }
+
+        } catch (error) {
+            atsScoreDisplay.textContent = 'Error';
+            atsScoreDisplay.style.color = '#FF0000';
+            atsFeedbackBox.textContent = `Network Error: Could not reach scoring server.`;
+        } finally {
+            atsScoreButton.disabled = false;
+        }
+    });
+
+    // --- Download PDF Logic (HTML Rendering via jsPDF/html2canvas) ---
+    downloadButton.addEventListener('click', function() {
+        const element = document.getElementById('preview-box');
+        
+        if (element.innerHTML.trim() === "" || element.innerHTML.includes("The generated resume will appear here.")) {
+             alert("Please generate a valid resume before attempting to download.");
+             return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        // Using 'pt' (points) unit and 'a4' format for predictable HTML rendering
+        const doc = new jsPDF('p', 'pt', 'a4'); 
+
+        // Renders the HTML content, capturing CSS/styles and handling multi-page splitting.
+        doc.html(element, {
+            callback: function (doc) {
+                const jobDescTitle = document.getElementById('job_description').value.split('\n')[0].substring(0, 30);
+                doc.save(`Perfected_Resume_${jobDescTitle || 'Gemini'}.pdf`);
+            },
+            // Margins for A4 paper size in points (595 x 842 pt)
+            x: 20, 
+            y: 20,
+            width: 555, // Inner width (595 - 2*20 margin)
+            windowWidth: 1000, // Resolution for rendering HTML
+        });
+    });
+
+    // --- Cover Letter Download Logic ---
+    downloadCoverLetterButton.addEventListener('click', function() {
+        const element = document.getElementById('cover-letter-preview-box');
+        
+        if (element.innerHTML.trim() === "" || element.innerHTML.includes("The generated cover letter will appear here.")) {
+             alert("Please generate a valid cover letter before attempting to download.");
+             return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        // Using 'pt' (points) unit and 'a4' format for predictable HTML rendering
+        const doc = new jsPDF('p', 'pt', 'a4'); 
+
+        // Renders the HTML content, capturing CSS/styles and handling multi-page splitting.
+        doc.html(element, {
+            callback: function (doc) {
+                const jobDescTitle = document.getElementById('job_description').value.split('\n')[0].substring(0, 30);
+                doc.save(`Cover_Letter_${jobDescTitle || 'Gemini'}.pdf`);
+            },
+            // Margins for A4 paper size in points (595 x 842 pt)
+            x: 20, 
+            y: 20,
+            width: 555, // Inner width (595 - 2*20 margin)
+            windowWidth: 1000, // Resolution for rendering HTML
+        });
+    });
+
+    // --- Chat Widget Logic ---
+    function appendMessage(text, role, metaHtml) {
+        const div = document.createElement('div');
+        div.className = `msg ${role}`;
+        div.textContent = text;
+        if (metaHtml && role === 'bot') {
+            const meta = document.createElement('div');
+            meta.style.fontSize = '12px';
+            meta.style.color = '#666';
+            meta.style.marginTop = '4px';
+            meta.innerHTML = metaHtml;
+            div.appendChild(meta);
+        }
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function getCurrentPreview() {
+        // Use innerHTML to capture the current rich-text content for the AI chat context
+        // Check if user is editing cover letter or resume
+        const isCoverLetterActive = coverLetterPreviewBox.innerHTML.trim() !== "The generated cover letter will appear here." && 
+                                   !coverLetterPreviewBox.innerHTML.includes("Error");
+        
+        if (isCoverLetterActive) {
+            return "COVER_LETTER:" + coverLetterPreviewBox.innerHTML.trim();
+        } else {
+            return "RESUME:" + previewBox.innerHTML.trim();
+        }
+    }
+
+    async function sendChatMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+        appendMessage(message, 'user');
+        chatInput.value = '';
+
+        const payload = {
+            message,
+            job_description: document.getElementById('job_description').value,
+            current_preview: getCurrentPreview()
+        };
+
+        // Temporary typing indicator
+        appendMessage('Thinking…', 'bot');
+        const typingEl = chatMessages.lastChild;
+
+        try {
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            // Remove 'Thinking...'
+            chatMessages.removeChild(typingEl); 
+            // Append the actual bot reply
+            appendMessage(data.reply_text || '...', 'bot');
+
+
+            if (data.reasoning_summary || Number.isInteger(data.deliberation_steps)) {
+                // The meta info is added as part of the reply, so we need to re-append the reply 
+                // with the meta data. Let's simplify this by just logging/displaying the reply.
+                // NOTE: The previous logic for adding meta to the typing element is complex to re-implement 
+                // cleanly after removing and re-adding. Keeping the simple appendMessage here.
+            }
+
+            if (data.updated_preview) {
+                // Determine if this is a resume or cover letter update
+                if (data.updated_preview.startsWith("COVER_LETTER:")) {
+                    const coverLetterContent = data.updated_preview.replace("COVER_LETTER:", "");
+                    coverLetterPreviewBox.innerHTML = coverLetterContent;
+                    downloadCoverLetterButton.disabled = false;
+                } else if (data.updated_preview.startsWith("RESUME:")) {
+                    const resumeContent = data.updated_preview.replace("RESUME:", "");
+                    previewBox.innerHTML = resumeContent;
+                    downloadButton.disabled = false;
+                    resetAtsDisplay();
+                    atsScoreButton.disabled = false;
+                    
+                    // Check page length after content update
+                    setTimeout(() => {
+                        checkPageLength();
+                        applyBorderToResume(borderSelect.value);
+                    }, 100);
+                } else {
+                    // Default to resume if no prefix
+                previewBox.innerHTML = data.updated_preview;
+                downloadButton.disabled = false;
+                resetAtsDisplay();
+                atsScoreButton.disabled = false;
+                    
+                    // Check page length after content update
+                    setTimeout(() => {
+                        checkPageLength();
+                        applyBorderToResume(borderSelect.value);
+                    }, 100);
+                }
+            }
+        } catch (e) {
+            // Remove 'Thinking...' and replace with error
+            chatMessages.removeChild(typingEl);
+            appendMessage('Network error. Please try again.', 'bot');
+        }
+    }
+
+    // Chat Event Listeners
+    chatToggle.addEventListener('click', () => {
+        chatPanel.style.display = chatPanel.style.display === 'flex' ? 'none' : 'flex';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        chatInput.focus();
+    });
+    chatClose.addEventListener('click', () => { chatPanel.style.display = 'none'; });
+    chatSend.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+</script>
+
+</body>
+</html>
