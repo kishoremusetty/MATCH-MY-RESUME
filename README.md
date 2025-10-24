@@ -65,7 +65,7 @@ Displays missing keywords, optimization tips, and improvement insights for bette
 
 
 
-## 🧑‍💻 Contributors  
+## Contributors  
 - **Kishore Musetty**   
 - *R Hari Kishore*
 - *M S D Prasad*
