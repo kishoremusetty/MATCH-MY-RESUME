@@ -38,10 +38,20 @@ Displays missing keywords, optimization tips, and improvement insights for bette
 ---
 
  🖼️ Feature Previews  
+ 1.Home Page
+ ![WhatsApp Image 2025-10-18 at 10 14 29 AM](https://github.com/user-attachments/assets/53317364-ff02-40fb-9be7-e1f5218d5eec)
 
+2.ATS Score Checker
+![WhatsApp Image 2025-10-18 at 10 15 29 AM](https://github.com/user-attachments/assets/2c60f4b4-1f59-4edd-a1e8-c17128dca592)
 
+3.Skill Gap Analysis
+![WhatsApp Image 2025-10-18 at 10 18 10 AM](https://github.com/user-attachments/assets/3a3a55ba-fe5c-4f96-84e8-b22235725a86)
 
+4.Cover Letter Generator
+![WhatsApp Image 2025-10-18 at 10 23 18 AM](https://github.com/user-attachments/assets/6f1d632b-1b3a-43ac-bf52-0cff0fd6240e)
 
+5.Generate Resume
+<img width="1353" height="608" alt="image" src="https://github.com/user-attachments/assets/a3bd3661-76e3-4ee3-ad1e-8b65bf4b63db" />
 
 ⚙️ How It Works  
 
